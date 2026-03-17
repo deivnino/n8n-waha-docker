@@ -1,0 +1,418 @@
+{
+  "updatedAt": "2026-02-20T01:56:24.451Z",
+  "createdAt": "2026-02-20T01:19:27.648Z",
+  "id": "HuGpwByTPX0Zd6p0lHKZ3",
+  "name": "Work with GitHub | examples",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e63c9c6a-f12c-45ee-9a68-f623e1210510",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -832,
+        336
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Push a single file via GitHub node directly to the remote GitHub repo",
+        "height": 244.559082047148,
+        "width": 865.0290253216738
+      },
+      "id": "4ec1355d-9de7-4853-bee8-46db099680f6",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -224,
+        96
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "list",
+          "value": "teds-tech-talks",
+          "cachedResultUrl": "https://github.com/teds-tech-talks",
+          "cachedResultName": "teds-tech-talks"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "list",
+          "value": "git_push_article",
+          "cachedResultUrl": "https://github.com/teds-tech-talks/git_push_article",
+          "cachedResultName": "git_push_article"
+        },
+        "filePath": "README.md",
+        "fileContent": "={{ $json.data }}\n## Updated at:\n{{ $now.toISO() }}",
+        "commitMessage": "updated from n8n via GitHub node"
+      },
+      "id": "15ef980f-43d7-49aa-87b2-ec71816150fd",
+      "name": "GitHub push edited file",
+      "type": "n8n-nodes-base.github",
+      "position": [
+        160,
+        176
+      ],
+      "typeVersion": 1,
+      "webhookId": "9a72ccbd-8fe4-4c8a-978b-5cc4709ef2d9"
+    },
+    {
+      "parameters": {},
+      "id": "a3b899e0-77d5-4d36-935b-519319a926f1",
+      "name": "Update README and add new file",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -16,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "add",
+        "repositoryPath": "={{ $('config').item.json.localrepo }}",
+        "pathsToAdd": "."
+      },
+      "id": "f1c65ff3-5ed8-4e0d-aeba-7f00988c110a",
+      "name": "Add files",
+      "type": "n8n-nodes-base.git",
+      "position": [
+        160,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "commit",
+        "repositoryPath": "={{ $('config').item.json.localrepo }}",
+        "message": "updated from n8n via Git node",
+        "options": {}
+      },
+      "id": "54f5f430-d5a7-40c2-8d24-b8d965758e36",
+      "name": "Commit",
+      "type": "n8n-nodes-base.git",
+      "position": [
+        320,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "gitPassword",
+        "operation": "push",
+        "repositoryPath": "={{ $('config').item.json.localrepo }}",
+        "options": {
+          "targetRepository": "https://github.com/teds-tech-talks/git_push_article.git"
+        }
+      },
+      "id": "3d415f5b-08bd-47ae-a43b-694ae69f7ae8",
+      "name": "Push",
+      "type": "n8n-nodes-base.git",
+      "position": [
+        480,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "localrepo",
+              "value": "/path/to/git/repo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "04b54a00-1a22-4675-8c0a-eb6c2cd2377d",
+      "name": "config",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -528,
+        336
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "pull",
+        "repositoryPath": "={{ $('config').item.json.localrepo }}"
+      },
+      "id": "f04007d1-6c10-41ef-b4ff-d7d9f82b167d",
+      "name": "Pull",
+      "type": "n8n-nodes-base.git",
+      "position": [
+        -176,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Push all changes via Git node",
+        "height": 251.5433184970501,
+        "width": 870.5619913953059
+      },
+      "id": "6d1cfda1-da08-4a15-a366-68ed50214179",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -224,
+        416
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "list",
+          "value": "teds-tech-talks"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "list",
+          "value": "git_push_article",
+          "cachedResultUrl": "https://github.com/teds-tech-talks/git_push_article",
+          "cachedResultName": "git_push_article"
+        },
+        "filePath": "README.md",
+        "additionalParameters": {}
+      },
+      "id": "24a3e8b0-5d95-4be1-b6ba-0ff617bfbf08",
+      "name": "GitHub get file",
+      "type": "n8n-nodes-base.github",
+      "position": [
+        -176,
+        176
+      ],
+      "typeVersion": 1,
+      "webhookId": "23a7a9ae-d129-40ca-bd4d-f5186ce8f049",
+      "credentials": {
+        "githubApi": {
+          "id": "EiuFA75Qlu3mNvku",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "var text = Buffer.from($input.first().binary.data.data, 'base64').toString('utf8');\nreturn {\"data\": text};"
+      },
+      "id": "385412ba-6a78-4489-8758-705e7386d209",
+      "name": "Decode file",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -16,
+        176
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "content": "## Please update the path to the local repository and connect this node to the upper or lower parts of the workflow",
+        "height": 383.3156992772523,
+        "width": 373.9894195663518
+      },
+      "id": "407d7bc2-bba9-48a0-a5a8-dcef2f8b326f",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        144
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\nconst workflowPath = path.join('{{ $(\\'config\\').item.json.localrepo }}', 'maestro_workflow.json');\ntry {\n  const workflowJSON = fs.readFileSync(workflowPath, 'utf8');\n  const parsedWorkflow = JSON.parse(workflowJSON);\n  return {workflowId: parsedWorkflow.id || 'xXQ0R_KRA2teh7aVZe-kQ', workflowData: parsedWorkflow, success: true};\n} catch (error) {\n  return {success: false, error: error.message, workflowId: 'xXQ0R_KRA2teh7aVZe-kQ'};\n}"
+      },
+      "id": "parse-wf-json",
+      "name": "Parse Workflow JSON",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        0,
+        720
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5678/api/v1/workflows/{{ $json.workflowId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "update-wf-api",
+      "name": "Update n8n Workflow via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        224,
+        736
+      ],
+      "typeVersion": 4
+    }
+  ],
+  "connections": {
+    "Commit": {
+      "main": [
+        [
+          {
+            "node": "Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add files": {
+      "main": [
+        [
+          {
+            "node": "Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decode file": {
+      "main": [
+        [
+          {
+            "node": "GitHub push edited file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub get file": {
+      "main": [
+        [
+          {
+            "node": "Decode file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull": {
+      "main": [
+        [
+          {
+            "node": "Parse Workflow JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Workflow JSON": {
+      "main": [
+        [
+          {
+            "node": "Update n8n Workflow via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "ce1e831a-b4fa-4293-ae8c-ddb5b40c3005",
+  "activeVersionId": null,
+  "versionCounter": 7,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-02-20T01:19:27.654Z",
+      "createdAt": "2026-02-20T01:19:27.654Z",
+      "role": "workflow:owner",
+      "workflowId": "HuGpwByTPX0Zd6p0lHKZ3",
+      "projectId": "UhQWd7l5fYh7qK52",
+      "project": {
+        "updatedAt": "2026-02-05T17:58:08.816Z",
+        "createdAt": "2026-02-05T17:45:27.977Z",
+        "id": "UhQWd7l5fYh7qK52",
+        "name": "Andres David Nino C <deivnino@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "cb047560-0459-432a-adcc-14365d6d9b37",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-02-05T17:45:27.978Z",
+            "createdAt": "2026-02-05T17:45:27.978Z",
+            "userId": "cb047560-0459-432a-adcc-14365d6d9b37",
+            "projectId": "UhQWd7l5fYh7qK52",
+            "user": {
+              "updatedAt": "2026-03-17T03:50:49.000Z",
+              "createdAt": "2026-02-05T17:45:27.236Z",
+              "id": "cb047560-0459-432a-adcc-14365d6d9b37",
+              "email": "deivnino@gmail.com",
+              "firstName": "Andres David",
+              "lastName": "Nino C",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-02-05T17:58:33.637Z",
+                "personalization_survey_n8n_version": "2.6.3",
+                "companySize": "<20",
+                "companyType": "education",
+                "role": "business-owner",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-03-17",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}

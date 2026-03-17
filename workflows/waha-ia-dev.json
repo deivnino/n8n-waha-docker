@@ -1,0 +1,650 @@
+{
+  "updatedAt": "2026-03-10T20:28:18.782Z",
+  "createdAt": "2026-03-04T23:12:43.275Z",
+  "id": "nSsRhEbujpKWX6ZmGaDpc",
+  "name": "waha",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "4860c257-b40f-4085-bdf6-46eff5b8e15b",
+      "name": "WAHA Trigger",
+      "type": "@devlikeapro/n8n-nodes-waha.wahaTrigger",
+      "typeVersion": 202409,
+      "position": [
+        80,
+        480
+      ],
+      "webhookId": "71251449-2644-4325-8ba7-2a1550a81fb4"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "f173d3f9-8fd6-4425-aeb2-ef0a855bdd56",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        64,
+        304
+      ],
+      "webhookId": "3b731dcc-2c75-4601-9b83-6782a4f31619",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "true",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f1137961-27a1-4eaa-b118-b874b4202916"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "242f1ea8-0d3f-491c-a60b-1ac78c82488f",
+                    "leftValue": "true",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": true
+        }
+      },
+      "id": "8b4062ec-7f9b-4cf7-b219-6a4fcb2a871f",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.1,
+      "position": [
+        400,
+        480
+      ],
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "id": "e4438b45-d7e9-4d9e-b95c-6a4fa9373529",
+      "name": "Send Seen",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202409,
+      "position": [
+        656,
+        192
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "GLDEayRhcouW5kt1",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('WAHA Trigger').item.json.payload.body }}",
+        "options": {
+          "systemMessage": "Eres un asistente virtual de atencion al cliente profesional y amable.\n\nTienes acceso a una herramienta de busqueda 'Buscar en Base de Conocimiento'. SIEMPRE usala primero antes de responder cualquier pregunta sobre el negocio, productos, precios o servicios.\n\nREGLAS:\n1. SIEMPRE busca en la base de conocimiento antes de responder preguntas de negocio.\n2. Responde SOLO con informacion encontrada. Si no encuentras nada relevante, di: 'No tengo esa informacion, te conecto con un asesor?'\n3. Responde en el mismo idioma del usuario.\n4. Se conciso. Maximo 3 parrafos.\n5. Usa emojis moderadamente (max 2).\n6. NUNCA inventes precios, fechas ni datos.\n7. Si el usuario esta frustrado o pide humano, responde SOLO: {\"action\":\"escalate\",\"reply\":\"Entendido, te conecto con un asesor.\"}\n\nTONO: Calido y profesional."
+        }
+      },
+      "id": "e3f6458b-2816-4788-8c24-a2f503c18547",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        656,
+        432
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-3-haiku-20240307",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 3"
+        },
+        "options": {}
+      },
+      "id": "c21f2e9b-938b-493b-8f36-b0a18682e0bd",
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        736
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "ofIKxCCibm2YNl8G",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "tableName": "chat_history",
+        "contextWindowLength": 20
+      },
+      "id": "a7a2f544-37e5-4b7c-b8a3-d234977fd878",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        640
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "Buscar_en_Base_de_Conocimiento",
+        "toolDescription": "Busca informacion relevante sobre el negocio, productos, precios, servicios y preguntas frecuentes. Usa esta herramienta SIEMPRE antes de responder preguntas de negocio.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "knowledge_base",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "eb50f1f6-1fdf-4d34-959c-84ecae7845e9",
+      "name": "Buscar en Base de Conocimiento",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [
+        800,
+        640
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "IwUAmPL2e0m7tTgi",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "id": "a648e27a-7f77-44ad-93c1-13da5f9780de",
+      "name": "Ollama Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        800,
+        800
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "n3kTDZQe7x63BCyX",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "requestOptions": {}
+      },
+      "id": "12b53d55-b310-48bd-ab58-d1f5acd6c460",
+      "name": "Start Typing",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202409,
+      "position": [
+        1008,
+        432
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "GLDEayRhcouW5kt1",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(($('AI Agent').item.json.output.length * 0.05), 8).toFixed(2) }}"
+      },
+      "id": "20a6a9fc-6597-4a9c-b1e9-74718d563343",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        432
+      ],
+      "webhookId": "f68851ae-0169-4f05-8451-d2cc502c253e"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "={{ $('AI Agent').item.json.output }}",
+        "requestOptions": {}
+      },
+      "id": "a301e27b-4b2b-4668-8a10-dbcbf880f995",
+      "name": "Send ia response",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202409,
+      "position": [
+        1488,
+        432
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "GLDEayRhcouW5kt1",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "chat_control",
+          "mode": "list",
+          "cachedResultName": "chat_control"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "phone_number",
+              "value": "={{ $('WAHA Trigger').item.json.payload.from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "53e78bce-acc6-4266-af82-e8f810892daa",
+      "name": "Get Chat Control",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1296,
+        656
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "AUTO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "909d6084-3ea3-4e7f-bf34-4b44f3c10784"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "29bf4b62-05a9-45ec-9a6b-66afb1fd9237",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "MANUAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "036803cb-3a0c-4ac8-9431-8bb51ae29d85",
+      "name": "Switch (mode)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1504,
+        656
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9c0882aa-f4c6-47bf-b3b7-6a81704ed423",
+      "name": "No Operation, do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WAHA AI Business OS - v0.3\n\nNOVEDAD v0.3:\n+ Qdrant RAG Tool conectada al AI Agent\n+ Ollama nomic-embed-text para busqueda semantica\n+ System prompt instruye al agente a buscar SIEMPRE\n\nFlujo completo:\n1. WAHA Trigger\n2. Switch -> Send Seen + AI pipeline (paralelo)\n3. AI Agent:\n   - LLM: Claude Haiku (Anthropic)\n   - Memory: Postgres chat_history\n   - Tool: Qdrant knowledge_base (RAG)\n4. Start Typing -> Wait dinamico -> Send Response\n5. Get Chat Control -> Switch AUTO/MANUAL",
+        "height": 300,
+        "width": 640,
+        "color": 7
+      },
+      "id": "310f80a2-fb01-4c75-90fe-dd894bd2789b",
+      "name": "Note: Architecture",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "WAHA Trigger": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send Seen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar en Base de Conocimiento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Buscar en Base de Conocimiento",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Start Typing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Typing": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send ia response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send ia response": {
+      "main": [
+        [
+          {
+            "node": "Get Chat Control",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat Control": {
+      "main": [
+        [
+          {
+            "node": "Switch (mode)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch (mode)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1d12250a-5e49-4aad-90d4-cafaa03da055",
+  "activeVersionId": null,
+  "versionCounter": 6,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-03-04T23:12:43.279Z",
+      "createdAt": "2026-03-04T23:12:43.279Z",
+      "role": "workflow:owner",
+      "workflowId": "nSsRhEbujpKWX6ZmGaDpc",
+      "projectId": "UhQWd7l5fYh7qK52",
+      "project": {
+        "updatedAt": "2026-02-05T17:58:08.816Z",
+        "createdAt": "2026-02-05T17:45:27.977Z",
+        "id": "UhQWd7l5fYh7qK52",
+        "name": "Andres David Nino C <deivnino@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "cb047560-0459-432a-adcc-14365d6d9b37",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-02-05T17:45:27.978Z",
+            "createdAt": "2026-02-05T17:45:27.978Z",
+            "userId": "cb047560-0459-432a-adcc-14365d6d9b37",
+            "projectId": "UhQWd7l5fYh7qK52",
+            "user": {
+              "updatedAt": "2026-03-17T03:50:49.000Z",
+              "createdAt": "2026-02-05T17:45:27.236Z",
+              "id": "cb047560-0459-432a-adcc-14365d6d9b37",
+              "email": "deivnino@gmail.com",
+              "firstName": "Andres David",
+              "lastName": "Nino C",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-02-05T17:58:33.637Z",
+                "personalization_survey_n8n_version": "2.6.3",
+                "companySize": "<20",
+                "companyType": "education",
+                "role": "business-owner",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": false,
+                "easyAIWorkflowOnboarded": true
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-03-17",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}

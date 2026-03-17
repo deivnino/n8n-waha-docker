@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   n8n:
-    image: n8nio/n8n:latest
+    image: docker.n8n.io/n8nio/n8n:latest
     container_name: n8n
     ports:
       - "5678:5678"
@@ -12,6 +12,10 @@ services:
       - N8N_PROTOCOL=http
       - NODE_ENV=production
       - GENERIC_TIMEZONE=America/Bogota
+      - TZ=GMT-5
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_SECURE_COOKIE=false
     volumes:
       - n8n_storage:/home/node/.n8n
       - ./workflows:/home/node/.n8n/workflows
@@ -24,15 +28,129 @@ services:
     container_name: waha
     ports:
       - "3000:3000"
+    env_file:
+      - ./.env
     environment:
       - WHATSAPP_API_PORT=3000
       - DEBUG=true
     volumes:
-      - waha_storage:/app/sessions
+      - waha_storage:/app/.sessions
     networks:
       - n8n-network
     depends_on:
       - n8n
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-chatwoot}
+      - POSTGRES_USER=${POSTGRES_USER:-chatwoot}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-chatwoot}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - n8n-network
+    restart: unless-stopped
+
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - n8n-network
+  #   restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    ports:
+      - "5050:80"
+    env_file:
+      - ./.env
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - n8n-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # chatwoot:
+  #   image: chatwoot/chatwoot:latest
+  #   container_name: chatwoot
+  #   ports:
+  #     - "3001:3000"
+  #   env_file:
+  #     - ./.env
+  #   environment:
+  #     - RAILS_ENV=production
+  #     - NODE_ENV=production
+  #     - INSTALLATION_ENV=docker
+  #     - SECRET_KEY_BASE=${CHATWOOT_SECRET_KEY_BASE}
+  #     - FRONTEND_URL=${CHATWOOT_FRONTEND_URL}
+  #     - FORCE_SSL=${CHATWOOT_FORCE_SSL:-false}
+  #     - DEFAULT_LOCALE=${CHATWOOT_DEFAULT_LOCALE:-es}
+  #     - POSTGRES_HOST=postgres
+  #     - POSTGRES_DATABASE=${POSTGRES_DB:-chatwoot}
+  #     - POSTGRES_USERNAME=${POSTGRES_USER:-chatwoot}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-chatwoot}
+  #     - REDIS_URL=redis://redis:6379
+  #   volumes:
+  #     - chatwoot_data:/app/storage
+  #   networks:
+  #     - n8n-network
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   restart: unless-stopped
+
+  # Computer Use (Anthropic demo)
+  # computer-use:
+  #   image: ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+  #   container_name: computer-use
+  #   user: "computeruse"
+  #   environment:
+  #     - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+  #     - DISPLAY=:1
+  #     - PYTHONPATH=/home/computeruse
+  #     - WIDTH=1280
+  #     - HEIGHT=720
+  #   ports:
+  #     - "6080:6080"
+  #     - "8080:8080"
+  #     - "8501:8501"
+  #     - "5900:5900"
+  #   volumes:
+  #     - computer_use_data:/home/computeruse/.anthropic
+  #   networks:
+  #     - n8n-network
+  #   restart: unless-stopped
+  #   working_dir: /home/computeruse
+  #   command:
+  #     - bash
+  #     - -lc
+  #     - /home/computeruse/entrypoint.sh & sleep 6; export PYTHONPATH=/home/computeruse; /home/computeruse/.pyenv/versions/3.11.6/bin/streamlit run /home/computeruse/computer_use_demo/streamlit.py --server.address 0.0.0.0 --server.port 8080 --server.headless true
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - n8n-network
     restart: unless-stopped
 
 networks:
@@ -41,4 +159,12 @@ networks:
 
 volumes:
   n8n_storage:
+    external: true
+    name: n8n_data
   waha_storage:
+  computer_use_data:
+  postgres_data:
+  qdrant_data:
+  # redis_data:
+  pgadmin_data:
+  # chatwoot_data:
