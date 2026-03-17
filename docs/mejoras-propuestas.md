@@ -20,6 +20,17 @@
 - **Problema**: Todas las imágenes usan `latest`, lo que genera inestabilidad operativa.
 - **Acción**: Pinear versiones específicas en `docker-compose.yml`.
 
+### 5. Workflow maestro de versionamiento (reemplazar botones individuales)
+- **Problema**: Actualmente los botones Push/Pull están dentro del workflow WAHA. Esto no escala si hay más workflows.
+- **Solución futura**: Crear un **workflow maestro separado** que versione cualquier workflow via Webhook con `?id=XYZ`.
+- **Referencia**: [Video tutorial](https://youtu.be/d7hNUFrbJxo) — Canal: Alvin (AstraVenture)
+- **Características del enfoque maestro**:
+  - Un solo workflow sirve para todos los demás (link clickeable desde cualquier flujo)
+  - Exporta via API de n8n, compara con GitHub, evita commits duplicados
+  - Formulario para mensaje de commit
+  - Crea archivo nuevo o actualiza existente según corresponda
+- **Estado**: Pendiente — por ahora se usan botones Push/Pull dentro del workflow WAHA
+
 ## Prioridad Media
 
 ### 5. Vectorizador acoplado a datos locales
