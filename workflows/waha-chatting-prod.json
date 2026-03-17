@@ -713,6 +713,242 @@
       ],
       "id": "4407afe2-49f4-4b24-b0ba-c8b3d07ec657",
       "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "## 🔄 Git Versioning\n\nRequiere 2 credenciales configuradas:\n1. **n8n API Key** (Header Auth): Header=`X-N8N-API-KEY`, Value=tu API key\n2. **GitHub PAT** (Header Auth): Header=`Authorization`, Value=`token ghp_xxx`\n\nCambia los valores en el nodo **Git Config** según tu repo.",
+        "height": 260,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "name": "Sticky Note Git",
+      "position": [
+        -560,
+        1300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## ⬆️ Push Workflow to Git\nExporta el workflow actual via API de n8n, lo sube a GitHub con un commit.",
+        "height": 120,
+        "width": 1100,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "name": "Sticky Note Push",
+      "position": [
+        -560,
+        1580
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## ⬇️ Pull Workflow from Git\nBaja el workflow desde GitHub y actualiza este workflow via API de n8n.",
+        "height": 120,
+        "width": 900,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "name": "Sticky Note Pull",
+      "position": [
+        -560,
+        1900
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "name": "Click to Push to Git",
+      "position": [
+        -520,
+        1640
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"repoOwner\": \"deivnino\", \"repoName\": \"n8n-waha-docker\", \"filePath\": \"workflows/waha-chatting-prod.json\", \"branch\": \"main\", \"workflowId\": \"xXQ0R_KRA2teh7aVZe-kQ\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "name": "Git Config Push",
+      "position": [
+        -320,
+        1640
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5678/api/v1/workflows/{{ $json.workflowId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "GET Workflow from n8n",
+      "position": [
+        -100,
+        1640
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "n8n API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get workflow data and config\nconst workflow = $input.first().json;\nconst config = $('Git Config Push').first().json;\n\n// Clean export: remove runtime fields\nconst exportData = { ...workflow };\ndelete exportData.statistics;\ndelete exportData.updatedAt;\ndelete exportData.createdAt;\n\nconst content = JSON.stringify(exportData, null, 2);\nconst contentBase64 = Buffer.from(content).toString('base64');\nconst timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');\n\nreturn [{\n  json: {\n    content: contentBase64,\n    message: `Update workflow: ${workflow.name} (${timestamp})`,\n    repoOwner: config.repoOwner,\n    repoName: config.repoName,\n    filePath: config.filePath,\n    branch: config.branch\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "name": "Prepare Push Payload",
+      "position": [
+        120,
+        1640
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $json.repoOwner }}/{{ $json.repoName }}/contents/{{ $json.filePath }}?ref={{ $json.branch }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "GET File SHA from GitHub",
+      "position": [
+        340,
+        1640
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $('Prepare Push Payload').first().json.repoOwner }}/{{ $('Prepare Push Payload').first().json.repoName }}/contents/{{ $('Prepare Push Payload').first().json.filePath }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $('Prepare Push Payload').first().json.message, content: $('Prepare Push Payload').first().json.content, sha: $json.sha || undefined, branch: $('Prepare Push Payload').first().json.branch }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "PUT File to GitHub",
+      "position": [
+        560,
+        1640
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "name": "Click to Pull from Git",
+      "position": [
+        -520,
+        1960
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"repoOwner\": \"deivnino\", \"repoName\": \"n8n-waha-docker\", \"filePath\": \"workflows/waha-chatting-prod.json\", \"branch\": \"main\", \"workflowId\": \"xXQ0R_KRA2teh7aVZe-kQ\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "name": "Git Config Pull",
+      "position": [
+        -320,
+        1960
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $json.repoOwner }}/{{ $json.repoName }}/contents/{{ $json.filePath }}?ref={{ $json.branch }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "GET File from GitHub",
+      "position": [
+        -100,
+        1960
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decode the file content from GitHub\nconst githubResponse = $input.first().json;\nconst config = $('Git Config Pull').first().json;\n\n// GitHub returns base64 encoded content\nconst content = Buffer.from(githubResponse.content, 'base64').toString('utf8');\nconst workflowData = JSON.parse(content);\n\n// Prepare the update payload (only send updatable fields)\nconst updatePayload = {\n  name: workflowData.name,\n  nodes: workflowData.nodes,\n  connections: workflowData.connections,\n  settings: workflowData.settings || {},\n  staticData: workflowData.staticData || null\n};\n\nreturn [{\n  json: {\n    workflowId: config.workflowId,\n    payload: updatePayload\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "name": "Parse GitHub Response",
+      "position": [
+        120,
+        1960
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=http://localhost:5678/api/v1/workflows/{{ $json.workflowId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "PUT Workflow to n8n",
+      "position": [
+        340,
+        1960
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "n8n API Key"
+        }
+      }
     }
   ],
   "connections": {
@@ -886,6 +1122,105 @@
     "Switch2 velocity control": {
       "main": [
         []
+      ]
+    },
+    "Click to Push to Git": {
+      "main": [
+        [
+          {
+            "node": "Git Config Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Git Config Push": {
+      "main": [
+        [
+          {
+            "node": "GET Workflow from n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Workflow from n8n": {
+      "main": [
+        [
+          {
+            "node": "Prepare Push Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Push Payload": {
+      "main": [
+        [
+          {
+            "node": "GET File SHA from GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET File SHA from GitHub": {
+      "main": [
+        [
+          {
+            "node": "PUT File to GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Click to Pull from Git": {
+      "main": [
+        [
+          {
+            "node": "Git Config Pull",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Git Config Pull": {
+      "main": [
+        [
+          {
+            "node": "GET File from GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET File from GitHub": {
+      "main": [
+        [
+          {
+            "node": "Parse GitHub Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse GitHub Response": {
+      "main": [
+        [
+          {
+            "node": "PUT Workflow to n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
