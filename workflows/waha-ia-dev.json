@@ -1,6 +1,4 @@
 {
-  "updatedAt": "2026-03-10T20:28:18.782Z",
-  "createdAt": "2026-03-04T23:12:43.275Z",
   "id": "nSsRhEbujpKWX6ZmGaDpc",
   "name": "waha",
   "description": null,
@@ -426,7 +424,7 @@
     },
     {
       "parameters": {
-        "content": "## 🔄 Git Versioning\n\nRequiere 2 credenciales configuradas:\n1. **n8n API Key** (Header Auth): Header=`X-N8N-API-KEY`, Value=tu API key\n2. **GitHub PAT** (Header Auth): Header=`Authorization`, Value=`token ghp_xxx`\n\nCambia los valores en el nodo **Git Config** según tu repo.",
+        "content": "## 🔄 Git Versioning\n\nRequiere 2 credenciales configuradas:\n1. **GitHub account** (GitHub API): Tu Personal Access Token de GitHub\n2. **n8n API Key** (Header Auth): Header=`X-N8N-API-KEY`, Value=tu API key\n\nCambia los valores en el nodo **Git Config** según tu repo.",
         "height": 260,
         "width": 520,
         "color": 4
@@ -434,10 +432,11 @@
       "type": "n8n-nodes-base.stickyNote",
       "name": "Sticky Note Git",
       "position": [
-        -20,
-        1100
+        -16,
+        1104
       ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "id": "75ed579a-bc95-46b8-8e03-cb50d5d52fc4"
     },
     {
       "parameters": {
@@ -449,10 +448,11 @@
       "type": "n8n-nodes-base.stickyNote",
       "name": "Sticky Note Push",
       "position": [
-        -20,
-        1380
+        -16,
+        1392
       ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "id": "36e13c0a-5510-4276-be9a-d932b1c2309f"
     },
     {
       "parameters": {
@@ -464,20 +464,22 @@
       "type": "n8n-nodes-base.stickyNote",
       "name": "Sticky Note Pull",
       "position": [
-        -20,
-        1700
+        -16,
+        1712
       ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "id": "ca169294-de09-4208-b174-19e1b41d9cbb"
     },
     {
       "parameters": {},
       "type": "n8n-nodes-base.manualTrigger",
       "name": "Click to Push to Git",
       "position": [
-        20,
+        32,
         1440
       ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "id": "429f32c2-282f-4fe7-b6d6-2237f7df3c5d"
     },
     {
       "parameters": {
@@ -488,10 +490,11 @@
       "type": "n8n-nodes-base.set",
       "name": "Git Config Push",
       "position": [
-        220,
+        224,
         1440
       ],
-      "typeVersion": 3.4
+      "typeVersion": 3.4,
+      "id": "c02d60df-b61c-463c-8173-694acfee6a67"
     },
     {
       "parameters": {
@@ -503,78 +506,62 @@
       "type": "n8n-nodes-base.httpRequest",
       "name": "GET Workflow from n8n",
       "position": [
-        440,
+        448,
         1440
       ],
       "typeVersion": 4.2,
+      "id": "82383b68-011d-4e7e-9824-10ae768ad991",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "",
+          "id": "XyRuoriQdpduVqzm",
           "name": "n8n API Key"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const workflow = $input.first().json;\nconst config = $('Git Config Push').first().json;\nconst exportData = { ...workflow };\ndelete exportData.statistics;\ndelete exportData.updatedAt;\ndelete exportData.createdAt;\nconst content = JSON.stringify(exportData, null, 2);\nconst contentBase64 = Buffer.from(content).toString('base64');\nconst timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');\nreturn [{\n  json: {\n    content: contentBase64,\n    message: `Update workflow: ${workflow.name} (${timestamp})`,\n    repoOwner: config.repoOwner,\n    repoName: config.repoName,\n    filePath: config.filePath,\n    branch: config.branch\n  }\n}];"
+        "jsCode": "const workflow = $input.first().json;\nconst config = $('Git Config Push').first().json;\nconst exportData = { ...workflow };\ndelete exportData.statistics;\ndelete exportData.updatedAt;\ndelete exportData.createdAt;\nconst content = JSON.stringify(exportData, null, 2);\nconst timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');\nreturn [{\n  json: {\n    content: content,\n    message: `Update workflow: ${workflow.name} (${timestamp})`,\n    repoOwner: config.repoOwner,\n    repoName: config.repoName,\n    filePath: config.filePath,\n    branch: config.branch\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "name": "Prepare Push Payload",
       "position": [
-        660,
+        672,
         1440
       ],
-      "typeVersion": 2
+      "typeVersion": 2,
+      "id": "f7d08e9e-93cf-49ba-a852-7433fcb0c933"
     },
     {
       "parameters": {
-        "url": "=https://api.github.com/repos/{{ $json.repoOwner }}/{{ $json.repoName }}/contents/{{ $json.filePath }}?ref={{ $json.branch }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.repoOwner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.repoName }}"
+        },
+        "filePath": "={{ $json.filePath }}",
+        "fileContent": "={{ $json.content }}",
+        "commitMessage": "={{ $json.message }}"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "name": "GET File SHA from GitHub",
-      "position": [
-        880,
-        1440
-      ],
-      "typeVersion": 4.2,
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "",
-          "name": "GitHub PAT"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "PUT",
-        "url": "=https://api.github.com/repos/{{ $('Prepare Push Payload').first().json.repoOwner }}/{{ $('Prepare Push Payload').first().json.repoName }}/contents/{{ $('Prepare Push Payload').first().json.filePath }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $('Prepare Push Payload').first().json.message, content: $('Prepare Push Payload').first().json.content, sha: $json.sha || undefined, branch: $('Prepare Push Payload').first().json.branch }) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.github",
       "name": "PUT File to GitHub",
       "position": [
-        1100,
+        896,
         1440
       ],
-      "typeVersion": 4.2,
+      "typeVersion": 1,
+      "id": "a3d8254f-7fa7-45d7-b830-54b47c24e515",
+      "webhookId": "aefad39b-4275-4edf-b38f-d61118628d0b",
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "",
-          "name": "GitHub PAT"
+        "githubApi": {
+          "id": "EiuFA75Qlu3mNvku",
+          "name": "GitHub account"
         }
       }
     },
@@ -583,10 +570,11 @@
       "type": "n8n-nodes-base.manualTrigger",
       "name": "Click to Pull from Git",
       "position": [
-        20,
+        32,
         1760
       ],
-      "typeVersion": 1
+      "typeVersion": 1,
+      "id": "4d595dab-5f3e-4f5f-98ba-ac7cdc0f5074"
     },
     {
       "parameters": {
@@ -597,29 +585,44 @@
       "type": "n8n-nodes-base.set",
       "name": "Git Config Pull",
       "position": [
-        220,
+        224,
         1760
       ],
-      "typeVersion": 3.4
+      "typeVersion": 3.4,
+      "id": "fa71da20-abc9-49f8-a669-51826cd0e8d4"
     },
     {
       "parameters": {
-        "url": "=https://api.github.com/repos/{{ $json.repoOwner }}/{{ $json.repoName }}/contents/{{ $json.filePath }}?ref={{ $json.branch }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.repoOwner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.repoName }}"
+        },
+        "filePath": "={{ $json.filePath }}",
+        "additionalParameters": {
+          "reference": "={{ $json.branch }}"
+        }
       },
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "n8n-nodes-base.github",
       "name": "GET File from GitHub",
       "position": [
-        440,
+        448,
         1760
       ],
-      "typeVersion": 4.2,
+      "typeVersion": 1,
+      "id": "80cc0830-6b99-4950-9d2d-e53c68ba0a62",
+      "webhookId": "de8ec182-1186-4aae-8f5e-358e5a6cc83d",
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "",
-          "name": "GitHub PAT"
+        "githubApi": {
+          "id": "EiuFA75Qlu3mNvku",
+          "name": "GitHub account"
         }
       }
     },
@@ -630,10 +633,11 @@
       "type": "n8n-nodes-base.code",
       "name": "Parse GitHub Response",
       "position": [
-        660,
+        672,
         1760
       ],
-      "typeVersion": 2
+      "typeVersion": 2,
+      "id": "2225c622-28d9-464d-ab1f-2cdde5187cbd"
     },
     {
       "parameters": {
@@ -653,9 +657,10 @@
         1760
       ],
       "typeVersion": 4.2,
+      "id": "a50c35a5-8614-4d2c-b9ed-449b683ee033",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "",
+          "id": "XyRuoriQdpduVqzm",
           "name": "n8n API Key"
         }
       }
@@ -851,17 +856,6 @@
       "main": [
         [
           {
-            "node": "GET File SHA from GitHub",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET File SHA from GitHub": {
-      "main": [
-        [
-          {
             "node": "PUT File to GitHub",
             "type": "main",
             "index": 0
@@ -917,16 +911,17 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": false
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
   },
   "staticData": null,
   "meta": {
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "1d12250a-5e49-4aad-90d4-cafaa03da055",
+  "versionId": "14152039-d55c-4a6a-b3a0-3452d89d249f",
   "activeVersionId": null,
-  "versionCounter": 6,
+  "versionCounter": 12,
   "triggerCount": 0,
   "shared": [
     {
@@ -951,7 +946,7 @@
             "userId": "cb047560-0459-432a-adcc-14365d6d9b37",
             "projectId": "UhQWd7l5fYh7qK52",
             "user": {
-              "updatedAt": "2026-03-17T03:50:49.000Z",
+              "updatedAt": "2026-03-17T15:08:38.000Z",
               "createdAt": "2026-02-05T17:45:27.236Z",
               "id": "cb047560-0459-432a-adcc-14365d6d9b37",
               "email": "deivnino@gmail.com",
