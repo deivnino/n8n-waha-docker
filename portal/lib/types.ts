@@ -13,6 +13,8 @@ export interface BusinessHours {
 export interface ClientSettings {
   phone_number: string;
   client_name: string;
+  business_name: string;
+  website_url: string;
   status: "AUTO" | "MANUAL" | "PAUSED";
   is_vip: boolean;
   outside_hours_enabled: boolean;

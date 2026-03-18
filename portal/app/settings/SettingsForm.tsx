@@ -71,6 +71,36 @@ export default function SettingsForm({ token, initialSettings }: Props) {
           <p className="text-slate-400 text-xs">{settings.phone_number}</p>
         </div>
 
+        {/* Datos del negocio */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-slate-100 text-sm font-medium">Datos del Negocio</CardTitle>
+            <p className="text-slate-500 text-xs">La IA usa esta información en sus respuestas</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-slate-400 text-xs">Nombre del negocio</Label>
+              <Input
+                value={settings.business_name ?? ""}
+                onChange={(e) => setSettings((p) => ({ ...p, business_name: e.target.value }))}
+                placeholder="Ej: Electrónica del Norte"
+                className="bg-slate-800 border-slate-700 text-slate-200 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-400 text-xs">Sitio web del negocio</Label>
+              <Input
+                value={settings.website_url ?? ""}
+                onChange={(e) => setSettings((p) => ({ ...p, website_url: e.target.value }))}
+                placeholder="https://minegocio.com"
+                type="url"
+                className="bg-slate-800 border-slate-700 text-slate-200 text-sm"
+              />
+              <p className="text-slate-600 text-xs">Se usará para indexar contenido web al RAG</p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Modo de atención */}
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader className="pb-3">

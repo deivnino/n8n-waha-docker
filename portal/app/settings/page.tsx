@@ -12,7 +12,7 @@ export default async function SettingsPage({ searchParams }: Props) {
   if (!token) notFound();
 
   const result = await pool.query(
-    `SELECT phone_number, client_name, status, is_vip, outside_hours_enabled, business_hours
+    `SELECT phone_number, client_name, business_name, website_url, status, is_vip, outside_hours_enabled, business_hours
      FROM chat_control WHERE auth_token = $1 LIMIT 1`,
     [token]
   );
