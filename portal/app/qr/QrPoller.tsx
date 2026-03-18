@@ -11,7 +11,7 @@ interface Props {
   phoneNumber: string;
 }
 
-type Status = "loading" | "qr_ready" | "connected" | "error";
+type Status = "loading" | "starting" | "qr_ready" | "connected" | "error";
 
 const POLL_INTERVAL = 3000;
 
@@ -33,7 +33,9 @@ export default function QrPoller({ sessionId, clientName, phoneNumber }: Props) 
         return true; // stop polling
       }
 
-      if (data.qr) {
+      if (data.starting) {
+        setStatus("starting");
+      } else if (data.qr) {
         setQrSrc(data.qr);
         setStatus("qr_ready");
       }
@@ -69,10 +71,14 @@ export default function QrPoller({ sessionId, clientName, phoneNumber }: Props) 
         </CardHeader>
 
         <CardContent className="flex flex-col items-center gap-4">
-          {status === "loading" && (
+          {(status === "loading" || status === "starting") && (
             <>
               <Spinner className="w-8 h-8 text-slate-400" />
-              <p className="text-sm text-slate-400">Cargando código QR...</p>
+              <p className="text-sm text-slate-400">
+                {status === "starting"
+                  ? "Iniciando sesión de WhatsApp..."
+                  : "Cargando código QR..."}
+              </p>
             </>
           )}
 

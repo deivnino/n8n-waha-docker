@@ -31,6 +31,22 @@
   - Crea archivo nuevo o actualiza existente según corresponda
 - **Estado**: Pendiente — por ahora se usan botones Push/Pull dentro del workflow WAHA
 
+### 6. Soporte para Notas de Voz (Audio → Texto)
+- **Problema**: En LATAM los clientes envían notas de voz constantemente. Si WAHA recibe un mensaje tipo `ptt` o `audio`, el campo `body` viene vacío y el agente IA no puede responder.
+- **Solución**: Agregar un nodo Switch al inicio del flujo. Si el tipo es audio, descargar el archivo de WAHA y pasarlo por **Whisper (OpenAI)** o **Groq** (rápido y gratuito) para transcribir a texto antes de inyectarlo al agente.
+- **Impacto**: Alto — diferenciador clave para clientes LATAM.
+- **Fuente**: Revisión Gemini 2026-03-17
+
+### 7. Fallback de LLM ante caídas de API
+- **Problema**: El flujo depende de Anthropic Claude. Si la API tiene timeout o caída, el cliente se queda "en visto" sin respuesta.
+- **Solución**: Configurar **Error Routing** (On Error: Continue) en el nodo AI Agent. Si Anthropic falla, desviar a un nodo de texto estático: *"Mi sistema se está actualizando, ¿me dejas tu consulta y te responde un asesor en breve?"* o pensar en mukti ias?
+- **Fuente**: Revisión Gemini 2026-03-17
+
+### 8. Embedding GPU vs CPU para producción
+- **Problema**: `vectorize.py` usa `nomic-embed-gpu`. En un VPS de producción (Coolify) es muy probable que no haya GPU dedicada, causando fallo silencioso o degradación.
+- **Solución**: Parametrizar el modelo de embedding para usar `nomic-embed-text` (CPU) en entornos de producción. Configurar via variable de entorno o config por entorno.
+- **Fuente**: Revisión Gemini 2026-03-17
+
 ## Prioridad Media
 
 ### 5. Vectorizador acoplado a datos locales
@@ -51,21 +67,62 @@
 
 ## Prioridad Baja
 
-### 9. Sin CI/CD ni tests
-- **Problema**: Sin tests, sin linters, sin formato declarado. Todo depende de prueba manual.
-- **Acción**: Agregar al menos un linter (ruff/flake8) y un smoke test del docker-compose.
+### 9. Sin CI/CD ni tests + pre-commit hooks
+- **Problema**: Sin tests, sin linters, sin formato declarado. Todo depende de prueba manual. No hay guardrails de repo que prevengan errores comunes.
+- **Acción**: Agregar al menos un linter (ruff/flake8) y un smoke test del docker-compose. Implementar **pre-commit hooks** mínimos: `check-merge-conflict`, `end-of-file-fixer`, `detect-secrets`.
+- **Fuente**: Revisión Copilot 2026-03-17
 
-### 10. Licencia placeholder
+### 10. Smoke test / preflight script
+- **Problema**: No hay forma automatizada de verificar que el stack está listo para operar. Se necesita validar: servicios Docker levantados, credenciales mínimas configuradas, tablas SQL existentes, nodos de comunidad instalados en n8n.
+- **Acción**: Crear script de preflight (`scripts/preflight.sh` o similar) que haga health checks básicos antes de operar.
+- **Fuente**: Revisión Codex 2026-03-17
+
+### 11. Documentar dependencia de nodos/plugins n8n
+- **Problema**: Los workflows usan nodos de comunidad (WAHA, LangChain/AI Agent) que no vienen con n8n vanilla. Si alguien levanta n8n limpio, los workflows no importan correctamente.
+- **Acción**: Documentar lista de nodos de comunidad requeridos y versiones, idealmente en README o en un manifiesto separado.
+- **Fuente**: Revisión Codex 2026-03-17
+
+### 12. Tercer archivo SQL conflictivo
+- **Problema**: Además de `setup_v06.sql` y `migration_v6.sql`, existe `migration_claude_md_sync.sql` como tercera fuente de verdad compitiendo. Agrava el problema de inconsistencia SQL (Prioridad Alta #3).
+- **Acción**: Unificar o archivar junto con la resolución del esquema autoritativo.
+- **Fuente**: Revisión Codex 2026-03-17
+
+### 13. Licencia placeholder
 - **Problema**: README dice "MIT (ajusta según tu preferencia)" — no es una decisión real.
 - **Acción**: Definir licencia definitiva y agregar archivo `LICENSE`.
 
-### 11. Problemas de encoding
+### 14. Problemas de encoding
 - **Problema**: Textos con caracteres rotos en README, docs y Makefile.
 - **Acción**: Normalizar encoding a UTF-8 en todos los archivos.
 
-### 12. Datos sensibles en el repo
-- **Problema**: PDFs y `.txt` de contenido real en `gemini_exported/`.
-- **Acción**: Mover a `.gitignore` o a almacenamiento externo.
+### 15. Datos sensibles y ruido en el repo
+- **Problema**: PDFs y `.txt` de contenido real en `gemini_exported/`. Además, `.history/` y `.continue/` (generados por IDEs) ensucian el árbol de trabajo y pueden filtrar contexto sensible en PRs.
+- **Acción**: Agregar a `.gitignore`: `gemini_exported/*.pdf`, `.history/`, `.continue/`. Mover datos reales a almacenamiento externo.
+
+### 16. Deriva de documentación (docs drift)
+- **Problema**: IDs de workflows, estado operativo, y configuración no están 100% alineados entre CLAUDE.md, TOOLS.md, README.md y los archivos SQL. Cada doc tiene su propia versión de la verdad.
+- **Acción**: Auditar y sincronizar los 4 archivos. Definir cuál es autoritativo para cada tipo de dato (IDs → CLAUDE.md, API → TOOLS.md, onboarding → README).
+- **Fuente**: Revisión Copilot 2026-03-17
+
+### 17. Estado autogenerado (`docs/state.md`)
+- **Problema**: Depender de docs manuales para reflejar el estado real del sistema genera drift inevitable (ver #16).
+- **Solución**: Crear un script o target `make state` que genere `docs/state.md` automáticamente a partir de `docker-compose.yml` (servicios, puertos, imágenes), workflows exportados (IDs, nombres), y esquema SQL actual (tablas).
+- **Fuente**: Revisión Copilot 2026-03-17
+
+### 18. Política de releases de workflows
+- **Problema**: No hay convención para versionar cambios a workflows de forma trazable. Los commits son ad-hoc y no hay forma clara de hacer rollback a un estado anterior.
+- **Solución**: Definir política: cambios a workflows solo vía export + commit semántico + etiqueta git (`vX.Y-workflows`). Permite rollback claro y changelog legible.
+- **Fuente**: Revisión Copilot 2026-03-17
+
+---
+
+## ✅ Resuelto Recientemente
+
+### Portal Cliente Web (2026-03-17)
+- **Problema**: Clientes sin acceso técnico no podían re-autenticar WAHA ni hacer self-service
+- **Solución**: App Next.js 14 en `portal/` con shadcn/ui + Tailwind. Auth via UUID token en URL.
+- **Implementado**: `/qr?token=UUID` — polling WAHA cada 3s, auto-start de sesión, UI dark mode
+- **Pendiente**: `/settings` (horarios, modo), `/dashboard` (métricas), upload RAG
 
 ---
 

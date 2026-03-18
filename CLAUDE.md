@@ -1,6 +1,6 @@
 # CLAUDE.md — Contexto Maestro del Proyecto
 > Archivo de contexto para Claude Code. Leer COMPLETO antes de hacer cualquier cambio.
-> Última actualización: 2026-03-16
+> Última actualización: 2026-03-17
 
 ---
 
@@ -249,24 +249,37 @@ No es SaaS de $20/mes. Es **"Transformación Operativa"**: $1,000 USD setup + ma
 
 ---
 
-## 🌐 Portal Cliente Externo (Diseñado, Pendiente Construir)
+## 🌐 Portal Cliente Externo — Next.js (En construcción)
 
-**Problema**: Los clientes necesitan hacer tareas de self-service sin acceso a n8n/Docker:
-- Escanear QR de WhatsApp (re-autenticación)
-- Subir archivos al RAG (catálogos, PDFs, FAQs)
-- Ver métricas básicas (mensajes respondidos, escalados)
-- Configurar horarios de atención y respuestas
+**Decisión**: Se eligió **Option B** (Next.js App Router) sobre Option A (n8n HTML) por escalabilidad.
+Option A genera deuda técnica inmediata al agregar features; Next.js permite crecer limpio.
 
-**Solución propuesta**: Form/portal web servido desde n8n o herramienta externa (Coolify):
-- Autenticación via token UUID por cliente (`chat_control.auth_token`)
-- Upload de archivos → pipeline de ingesta a Qdrant
-- Dashboard básico de métricas desde `interactions_log` y `chat_history`
-- Config de horarios y mensajes → escribe en `chat_control`
+**Stack**: Next.js 14 (App Router) + Tailwind + shadcn/ui + pg (PostgreSQL) — `portal/`
 
-**Opciones de implementación**:
-- **Option A**: n8n Webhook + HTML (como el portal QR, sin infra nueva)
-- **Option B**: App frontend separada (React/Next.js) en Coolify
-- **Option C**: Herramienta no-code (Retool, Budibase) conectada a Postgres
+**Auth**: Token UUID por cliente en `chat_control.auth_token`. URL: `/qr?token=UUID`
+
+### Páginas implementadas
+| Ruta | Estado | Descripción |
+|------|--------|-------------|
+| `/qr?token=UUID` | ✅ Funcionando | QR re-auth con polling a WAHA, auto-start de sesión |
+| `/settings?token=UUID` | 🔨 Stub | Config horarios, modo AUTO/MANUAL |
+| `/dashboard?token=UUID` | 🔨 Stub | Métricas: mensajes, escalados, historial |
+
+### Flujo QR implementado
+1. Server component valida token en Postgres → obtiene `waha_session_id`
+2. Client component (`QrPoller`) hace polling a `/api/qr/{sessionId}` cada 3s
+3. API route verifica estado WAHA: STOPPED → start automático, STARTING → espera, SCAN_QR_CODE → devuelve QR
+4. Al conectar → muestra ✅
+
+### Beta client configurado
+- `phone_number`: `573168294407@c.us`
+- `waha_session_id`: `default`
+- `auth_token`: en Postgres (`chat_control`)
+
+### Pendiente (próximas sesiones)
+- `/settings`: horarios de atención, modo AUTO/MANUAL, mensaje fuera de horario
+- `/dashboard`: métricas desde `chat_history` y `system_logs`
+- Upload de archivos al RAG (catálogos PDF → Qdrant)
 
 ---
 
@@ -325,11 +338,14 @@ Referencia: https://youtu.be/d7hNUFrbJxo (Canal Alvin / AstraVenture)
 6. **Declarar dependencias Python** — `vectorize.py` usa langchain/qdrant-client sin `requirements.txt`
 7. **Agregar Ollama al docker-compose** (o documentar como dependencia externa explícita)
 8. **`gemini_exported/` a `.gitignore`** — PDFs con contenido real no deben versionarse
+9. **Soporte para notas de voz** — Switch + Whisper/Groq para transcribir audios antes del agente IA
+10. **Fallback de LLM** — Error Routing en AI Agent con mensaje estático si Anthropic cae
+11. **Embedding GPU vs CPU** — Parametrizar `nomic-embed-gpu` → `nomic-embed-text` para VPS sin GPU
+12. **Workflow maestro de versionamiento** — Reemplazar botones Push/Pull individuales por workflow centralizado
 
 ### Prioridad Baja
 9. Normalizar encoding UTF-8 en todos los archivos
 10. Definir licencia definitiva (`LICENSE`)
-11. Workflow maestro de versionamiento (reemplazar botones Push/Pull dentro del workflow WAHA)
 
 ---
 
@@ -346,7 +362,7 @@ Referencia: https://youtu.be/d7hNUFrbJxo (Canal Alvin / AstraVenture)
 
 ---
 
-## 📌 Estado Actual (2026-03-16)
+## 📌 Estado Actual (2026-03-17)
 
 | Componente                  | Estado                                   |
 |-----------------------------|------------------------------------------|
@@ -354,8 +370,10 @@ Referencia: https://youtu.be/d7hNUFrbJxo (Canal Alvin / AstraVenture)
 | WAHA session persistence    | ✅ Fix aplicado (`/app/.sessions`)       |
 | Workflow waha_v6            | ✅ Diseñado, pendiente deploy final      |
 | SQL migrations v6           | ✅ Ejecutadas (2026-03-16)              |
-| Portal QR re-auth           | 📋 Diseñado, pendiente construir         |
-| Portal cliente externo      | 📋 Diseñado, pendiente construir         |
+| Portal QR re-auth           | ✅ Funcionando (`/qr?token=UUID`)        |
+| Portal cliente externo      | 🔨 En construcción (`portal/` Next.js)  |
+| Portal /settings            | 📋 Próxima sesión                        |
+| Portal /dashboard           | 📋 Próxima sesión                        |
 | Inventario MCP Router       | 📋 Diseñado, pendiente construir         |
 | Beta client activo          | ✅ Tienda electrónica, Bogotá            |
 | Primer cliente de pago      | 🎯 Objetivo post-validación beta         |
