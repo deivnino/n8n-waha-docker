@@ -36,75 +36,10 @@
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "leftValue": "true",
-                    "rightValue": "true",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    },
-                    "id": "f1137961-27a1-4eaa-b118-b874b4202916"
-                  }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "id": "242f1ea8-0d3f-491c-a60b-1ac78c82488f",
-                    "leftValue": "true",
-                    "rightValue": "true",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
-            }
-          ]
-        },
-        "options": {
-          "allMatchingOutputs": true
-        }
-      },
-      "id": "8b4062ec-7f9b-4cf7-b219-6a4fcb2a871f",
-      "name": "Switch",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.1,
-      "position": [
-        400,
-        480
-      ],
-      "alwaysOutputData": false,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
         "resource": "Chatting",
         "operation": "Send Seen",
-        "participant": "",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
         "requestOptions": {}
       },
       "id": "e4438b45-d7e9-4d9e-b95c-6a4fa9373529",
@@ -297,35 +232,19 @@
     },
     {
       "parameters": {
-        "operation": "select",
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": {
-          "__rl": true,
-          "value": "chat_control",
-          "mode": "list",
-          "cachedResultName": "chat_control"
-        },
-        "where": {
-          "values": [
-            {
-              "column": "phone_number",
-              "value": "={{ $('WAHA Trigger').item.json.payload.from }}"
-            }
-          ]
-        },
-        "options": {}
+        "operation": "executeQuery",
+        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET phone_number = EXCLUDED.phone_number RETURNING phone_number, status, is_vip, business_name, business_hours, outside_hours_enabled",
+        "options": {
+          "queryReplacement": "={{ $('WAHA Trigger').item.json.payload.from }}"
+        }
       },
       "id": "53e78bce-acc6-4266-af82-e8f810892daa",
       "name": "Get Chat Control",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1296,
-        656
+        280,
+        480
       ],
       "credentials": {
         "postgres": {
@@ -391,8 +310,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        1504,
-        656
+        480,
+        480
       ]
     },
     {
@@ -408,7 +327,7 @@
     },
     {
       "parameters": {
-        "content": "## WAHA AI Business OS - v0.3\n\nNOVEDAD v0.3:\n+ Qdrant RAG Tool conectada al AI Agent\n+ Ollama nomic-embed-text para busqueda semantica\n+ System prompt instruye al agente a buscar SIEMPRE\n\nFlujo completo:\n1. WAHA Trigger\n2. Switch -> Send Seen + AI pipeline (paralelo)\n3. AI Agent:\n   - LLM: Claude Haiku (Anthropic)\n   - Memory: Postgres chat_history\n   - Tool: Qdrant knowledge_base (RAG)\n4. Start Typing -> Wait dinamico -> Send Response\n5. Get Chat Control -> Switch AUTO/MANUAL",
+        "content": "## WAHA AI Business OS - v0.4\n\nNOVEDAD v0.4:\n+ Get Chat Control ahora es PRIMERO (UPSERT: auto-registra clientes nuevos)\n+ Switch (mode) decide antes de procesar: AUTO / MANUAL+PAUSED\n+ Send Seen + AI Agent corren en paralelo (solo en AUTO)\n+ Removido Switch siempre-verdadero innecesario\n\nFlujo completo:\n1. WAHA Trigger\n2. Get Chat Control (UPSERT Postgres)\n3. Switch (mode): AUTO -> paso 4+5 paralelo | MANUAL/PAUSED -> No Op\n4. Send Seen (paralelo con AI)\n5. AI Agent:\n   - LLM: Claude Haiku (Anthropic)\n   - Memory: Postgres chat_history\n   - Tool: Qdrant knowledge_base (RAG)\n6. Start Typing -> Wait dinamico -> Send Response",
         "height": 300,
         "width": 640,
         "color": 7
@@ -669,30 +588,34 @@
   "connections": {
     "WAHA Trigger": {
       "main": [
-        [],
         [
           {
-            "node": "Switch",
+            "node": "Get Chat Control",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "When chat message received": {
+    "Get Chat Control": {
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Switch (mode)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Switch": {
+    "Switch (mode)": {
       "main": [
         [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Send Seen",
             "type": "main",
@@ -701,7 +624,7 @@
         ],
         [
           {
-            "node": "AI Agent",
+            "node": "No Operation, do nothing",
             "type": "main",
             "index": 0
           }
@@ -779,40 +702,6 @@
         [
           {
             "node": "Send ia response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send ia response": {
-      "main": [
-        [
-          {
-            "node": "Get Chat Control",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Chat Control": {
-      "main": [
-        [
-          {
-            "node": "Switch (mode)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Switch (mode)": {
-      "main": [
-        [],
-        [
-          {
-            "node": "No Operation, do nothing",
             "type": "main",
             "index": 0
           }
