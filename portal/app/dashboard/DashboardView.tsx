@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import NavBar from "@/components/NavBar";
 
 interface WeekDay { day: string; count: number }
 interface Message  { role: string; content: string; created_at: string }
@@ -110,8 +111,9 @@ export default function DashboardView({ token }: { token: string }) {
   const { client, stats, week, recent } = data;
 
   return (
-    <main className="min-h-screen bg-slate-950 p-4 md:p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-950">
+      <NavBar />
+      <div className="max-w-2xl mx-auto space-y-6 p-4 md:p-8">
 
         {/* Header */}
         <div className="flex items-start justify-between">

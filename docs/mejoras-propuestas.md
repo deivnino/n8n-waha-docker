@@ -116,6 +116,16 @@
 
 ---
 
+## Prioridad Alta (Portal)
+
+### IP Whitelist por cliente
+- **Problema**: El portal (`/qr`, `/settings`, `/dashboard`, `/upload`) es accesible desde cualquier IP con el token UUID. Un token filtrado compromete el acceso.
+- **Solución propuesta**: Guardar `allowed_ips TEXT[]` en `chat_control`. En el middleware de Next.js (`middleware.ts`), verificar que `req.ip` esté en la lista antes de servir cualquier ruta del portal. Fallback: rate limiting por token (max 100 req/hora).
+- **Implementación**: `middleware.ts` en `portal/` + columna `allowed_ips` en Postgres + UI en `/settings` para agregar/quitar IPs.
+- **Prioridad**: Media-Alta — implementar antes de deploy en producción con clientes reales.
+
+---
+
 ## ✅ Resuelto Recientemente
 
 ### Portal Cliente Web (2026-03-17)

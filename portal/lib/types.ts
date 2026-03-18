@@ -14,6 +14,7 @@ export interface ClientSettings {
   phone_number: string;
   client_name: string;
   status: "AUTO" | "MANUAL" | "PAUSED";
+  is_vip: boolean;
   outside_hours_enabled: boolean;
   business_hours: BusinessHours;
 }

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ClientSettings, DAYS } from "@/lib/types";
+import NavBar from "@/components/NavBar";
 
 interface Props {
   token: string;
@@ -57,13 +58,16 @@ export default function SettingsForm({ token, initialSettings }: Props) {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 p-4 md:p-8">
-      <div className="max-w-xl mx-auto space-y-6">
+    <main className="min-h-screen bg-slate-950">
+      <NavBar />
+      <div className="max-w-xl mx-auto space-y-6 p-4 md:p-8">
 
         {/* Header */}
         <div className="text-center space-y-1">
-          <div className="text-3xl">⚙️</div>
-          <h1 className="text-white font-semibold text-lg">{settings.client_name}</h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-white font-semibold text-lg">{settings.client_name}</h1>
+            {settings.is_vip && <span className="text-amber-400 text-sm">⭐ VIP</span>}
+          </div>
           <p className="text-slate-400 text-xs">{settings.phone_number}</p>
         </div>
 
@@ -92,6 +96,20 @@ export default function SettingsForm({ token, initialSettings }: Props) {
                 )}
               </button>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* VIP */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-slate-200 text-sm font-medium">⭐ Cliente VIP</p>
+              <p className="text-slate-500 text-xs mt-0.5">Solo atienden asesores humanos, sin límite de mensajes</p>
+            </div>
+            <Switch
+              checked={settings.is_vip ?? false}
+              onCheckedChange={(v) => setSettings((p) => ({ ...p, is_vip: v }))}
+            />
           </CardContent>
         </Card>
 

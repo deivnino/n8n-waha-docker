@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import NavBar from "@/components/NavBar";
 
 interface Props {
   sessionId: string;
@@ -62,7 +63,9 @@ export default function QrPoller({ sessionId, clientName, phoneNumber }: Props) 
   }, [poll]);
 
   return (
-    <main className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-slate-950 flex flex-col">
+      <NavBar />
+      <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm bg-slate-900 border-slate-800 text-slate-100">
         <CardHeader className="text-center space-y-2">
           <div className="text-3xl">📱</div>
@@ -122,6 +125,7 @@ export default function QrPoller({ sessionId, clientName, phoneNumber }: Props) 
           )}
         </CardContent>
       </Card>
+      </div>
     </main>
   );
 }
