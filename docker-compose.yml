@@ -141,6 +141,28 @@ services:
   #     - -lc
   #     - /home/computeruse/entrypoint.sh & sleep 6; export PYTHONPATH=/home/computeruse; /home/computeruse/.pyenv/versions/3.11.6/bin/streamlit run /home/computeruse/computer_use_demo/streamlit.py --server.address 0.0.0.0 --server.port 8080 --server.headless true
 
+  portal:
+    build:
+      context: ./portal
+      dockerfile: Dockerfile
+    container_name: portal
+    ports:
+      - "3001:3001"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-chatwoot}
+      - POSTGRES_USER=${POSTGRES_USER:-chatwoot}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-chatwoot}
+      - WAHA_URL=http://waha:3000
+      - WAHA_API_KEY=${WAHA_API_KEY:-}
+    networks:
+      - n8n-network
+    depends_on:
+      - postgres
+      - waha
+    restart: unless-stopped
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
