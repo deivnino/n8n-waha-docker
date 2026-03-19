@@ -19,6 +19,8 @@ export interface ClientSettings {
   is_vip: boolean;
   outside_hours_enabled: boolean;
   business_hours: BusinessHours;
+  allegra_url: string | null;
+  allegra_api_key: string | null;
 }
 
 export const DAYS = [

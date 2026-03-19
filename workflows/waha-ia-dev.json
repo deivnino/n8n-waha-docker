@@ -12,8 +12,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.wahaTrigger",
       "typeVersion": 202409,
       "position": [
-        80,
-        480
+        32,
+        776
       ],
       "webhookId": "71251449-2644-4325-8ba7-2a1550a81fb4"
     },
@@ -28,8 +28,8 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.4,
       "position": [
-        64,
-        304
+        32,
+        192
       ],
       "webhookId": "3b731dcc-2c75-4601-9b83-6782a4f31619",
       "disabled": true
@@ -47,8 +47,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202409,
       "position": [
-        656,
-        192
+        1824,
+        608
       ],
       "credentials": {
         "wahaApi": {
@@ -62,7 +62,7 @@
         "promptType": "define",
         "text": "={{ $('WAHA Trigger').item.json.payload.body }}",
         "options": {
-          "systemMessage": "Eres un asistente virtual de atencion al cliente profesional y amable.\n\nTienes acceso a una herramienta de busqueda 'Buscar en Base de Conocimiento'. SIEMPRE usala primero antes de responder cualquier pregunta sobre el negocio, productos, precios o servicios.\n\nREGLAS:\n1. SIEMPRE busca en la base de conocimiento antes de responder preguntas de negocio.\n2. Responde SOLO con informacion encontrada. Si no encuentras nada relevante, di: 'No tengo esa informacion, te conecto con un asesor?'\n3. Responde en el mismo idioma del usuario.\n4. Se conciso. Maximo 3 parrafos.\n5. Usa emojis moderadamente (max 2).\n6. NUNCA inventes precios, fechas ni datos.\n7. Si el usuario esta frustrado o pide humano, responde SOLO: {\"action\":\"escalate\",\"reply\":\"Entendido, te conecto con un asesor.\"}\n\nTONO: Calido y profesional. "
+          "systemMessage": "={{ (() => {\nconst config = $('Get Chat Control').item.json;\nconst name = config.business_name || 'nuestro negocio';\nconst web = config.website_url || '';\nreturn `Eres el asistente virtual de ${name}. Representas al negocio directamente — habla como parte del equipo, no como un bot externo.\n\nTIENES 4 HERRAMIENTAS DISPONIBLES. USALAS ACTIVAMENTE:\n1. **Buscar_en_Base_de_Conocimiento** — SIEMPRE usala PRIMERO para cualquier pregunta sobre productos, precios, servicios, horarios o el negocio.\n2. **Consultar_Sitio_Web** — Si la base de conocimiento no tiene la respuesta${web ? ', busca en ' + web : ''}. Usa esta herramienta para consultas sobre productos o disponibilidad.\n3. **Consultar_Inventario_ERP** — Para verificar stock o precios exactos en tiempo real (solo si el cliente tiene ERP configurado).\n4. **Escalar_a_Humano** — SOLO si el cliente pide hablar con una persona real o esta muy frustrado.\n\nREGLAS:\n1. BUSCA en tus herramientas ANTES de responder. No respondas de memoria.\n2. Si ninguna herramienta devuelve informacion relevante, di: \"No tengo esa informacion a mano, quieres que te conecte con un asesor?\"\n3. NUNCA inventes precios, disponibilidad ni datos del negocio.\n4. Responde en el mismo idioma del cliente.\n5. Se conciso y directo. Maximo 2-3 parrafos cortos.\n6. Usa maximo 2 emojis por mensaje.\n7. Si el cliente pide un humano o esta frustrado, usa la herramienta Escalar_a_Humano inmediatamente.\n\nTONO: Calido, profesional y eficiente. Como un vendedor experto que conoce su catalogo.`;\n})() }}"
         }
       },
       "id": "e3f6458b-2816-4788-8c24-a2f503c18547",
@@ -70,10 +70,11 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        656,
-        432
+        2640,
+        624
       ],
-      "alwaysOutputData": false,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
       "executeOnce": false
     },
     {
@@ -91,8 +92,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
       "position": [
-        448,
-        736
+        2272,
+        848
       ],
       "credentials": {
         "anthropicApi": {
@@ -105,7 +106,6 @@
       "parameters": {
         "sessionIdType": "customKey",
         "sessionKey": "={{ $('WAHA Trigger').item.json.payload.from }}",
-        "tableName": "chat_history",
         "contextWindowLength": 20
       },
       "id": "a7a2f544-37e5-4b7c-b8a3-d234977fd878",
@@ -113,8 +113,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.1,
       "position": [
-        656,
-        640
+        2400,
+        848
       ],
       "credentials": {
         "postgres": {
@@ -133,15 +133,17 @@
           "value": "knowledge_base",
           "mode": "name"
         },
-        "options": {}
+        "options": {
+          "searchFilterJson": "={{ JSON.stringify({\"must\": [{\"key\": \"phone_number\", \"match\": {\"value\": $(\"WAHA Trigger\").item.json.payload.from}}]}) }}"
+        }
       },
       "id": "eb50f1f6-1fdf-4d34-959c-84ecae7845e9",
       "name": "Buscar en Base de Conocimiento",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1,
       "position": [
-        800,
-        640
+        2528,
+        848
       ],
       "credentials": {
         "qdrantApi": {
@@ -159,8 +161,8 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
       "typeVersion": 1,
       "position": [
-        800,
-        800
+        2608,
+        1056
       ],
       "credentials": {
         "ollamaApi": {
@@ -182,8 +184,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202409,
       "position": [
-        1008,
-        432
+        3280,
+        624
       ],
       "credentials": {
         "wahaApi": {
@@ -194,15 +196,15 @@
     },
     {
       "parameters": {
-        "amount": "={{ Math.min(($('AI Agent').item.json.output.length * 0.05), 8).toFixed(2) }}"
+        "amount": "={{ (Math.min(($('AI Agent').item.json.output.length * 0.05) + 2, 10)).toFixed(2) }}"
       },
       "id": "20a6a9fc-6597-4a9c-b1e9-74718d563343",
       "name": "Wait",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1248,
-        432
+        3504,
+        624
       ],
       "webhookId": "f68851ae-0169-4f05-8451-d2cc502c253e"
     },
@@ -220,8 +222,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202409,
       "position": [
-        1488,
-        432
+        3728,
+        624
       ],
       "credentials": {
         "wahaApi": {
@@ -232,10 +234,43 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "only-messages-filter-node",
+      "name": "Only Messages",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        256,
+        1064
+      ]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET phone_number = EXCLUDED.phone_number RETURNING phone_number, status, is_vip, business_name, business_hours, outside_hours_enabled",
+        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET phone_number = EXCLUDED.phone_number RETURNING phone_number, status, is_vip, business_name, business_hours, outside_hours_enabled, website_url, allegra_url, allegra_api_key",
         "options": {
-          "queryReplacement": "={{ $('WAHA Trigger').item.json.payload.from }}"
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
         }
       },
       "id": "53e78bce-acc6-4266-af82-e8f810892daa",
@@ -243,13 +278,82 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        280,
-        480
+        928,
+        968
       ],
       "credentials": {
         "postgres": {
           "id": "MpT6kay8Q7oxgRNE",
           "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $input.first().json;\nconst bh = config.business_hours;\n\n// Si business_hours no está configurado o outside_hours_enabled es false, siempre pasar\nif (!bh || !config.outside_hours_enabled) {\n  return [{ json: { ...config, within_hours: true } }];\n}\n\n// Hora actual en Colombia (GMT-5)\nconst now = new Date();\nconst colombiaOffset = -5 * 60;\nconst utcMinutes = now.getTime() / 60000 + now.getTimezoneOffset();\nconst colombiaDate = new Date((utcMinutes + colombiaOffset) * 60000);\n\nconst days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];\nconst dayName = days[colombiaDate.getDay()];\nconst currentHour = colombiaDate.getHours();\nconst currentMin = colombiaDate.getMinutes();\nconst currentTotal = currentHour * 60 + currentMin;\n\nconst schedule = bh.schedule || {};\nconst dayConfig = schedule[dayName];\n\nlet withinHours = false;\nif (dayConfig && dayConfig.enabled) {\n  const [openH, openM] = dayConfig.open.split(':').map(Number);\n  const [closeH, closeM] = dayConfig.close.split(':').map(Number);\n  const openTotal = openH * 60 + openM;\n  const closeTotal = closeH * 60 + closeM;\n  withinHours = currentTotal >= openTotal && currentTotal < closeTotal;\n}\n\nreturn [{ json: { ...config, within_hours: withinHours, outside_message: bh.outside_message || 'Estamos fuera de horario. Te responderemos pronto.' } }];"
+      },
+      "id": "check-business-hours-v1",
+      "name": "Check Business Hours",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        968
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "within-hours-check",
+              "leftValue": "={{ $json.within_hours }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-within-hours-v1",
+      "name": "IF: Within Hours?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        968
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "={{ $json.outside_message }}",
+        "requestOptions": {}
+      },
+      "id": "send-outside-hours-v1",
+      "name": "Send Outside Hours",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202409,
+      "position": [
+        3728,
+        1240
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "GLDEayRhcouW5kt1",
+          "name": "WAHA account"
         }
       }
     },
@@ -310,8 +414,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        480,
-        480
+        1600,
+        800
       ]
     },
     {
@@ -321,13 +425,319 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1728,
-        784
+        1824,
+        1096
       ]
     },
     {
       "parameters": {
-        "content": "## WAHA AI Business OS - v0.4\n\nNOVEDAD v0.4:\n+ Get Chat Control ahora es PRIMERO (UPSERT: auto-registra clientes nuevos)\n+ Switch (mode) decide antes de procesar: AUTO / MANUAL+PAUSED\n+ Send Seen + AI Agent corren en paralelo (solo en AUTO)\n+ Removido Switch siempre-verdadero innecesario\n\nFlujo completo:\n1. WAHA Trigger\n2. Get Chat Control (UPSERT Postgres)\n3. Switch (mode): AUTO -> paso 4+5 paralelo | MANUAL/PAUSED -> No Op\n4. Send Seen (paralelo con AI)\n5. AI Agent:\n   - LLM: Claude Haiku (Anthropic)\n   - Memory: Postgres chat_history\n   - Tool: Qdrant knowledge_base (RAG)\n6. Start Typing -> Wait dinamico -> Send Response",
+        "operation": "executeQuery",
+        "query": "WITH cleanup AS (\n  DELETE FROM processing_locks WHERE locked_at < NOW() - INTERVAL '5 minutes'\n),\nattempt AS (\n  INSERT INTO processing_locks (phone_number, workflow_id)\n  VALUES ($1, 'waha-dev')\n  ON CONFLICT (phone_number) DO NOTHING\n  RETURNING phone_number\n)\nSELECT\n  $1::text AS phone_number,\n  CASE WHEN EXISTS (SELECT 1 FROM attempt) THEN true ELSE false END AS lock_acquired",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
+        }
+      },
+      "id": "acquire-lock-node-v1",
+      "name": "Acquire Lock",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        1064
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "lock-acquired-check",
+              "leftValue": "={{ $json.lock_acquired }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-lock-acquired-v1",
+      "name": "IF: Lock Acquired?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        704,
+        1064
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO message_queue (phone_number, message_body) VALUES ($1, $2)",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from, $('WAHA Trigger').item.json.payload.body] }}"
+        }
+      },
+      "id": "queue-message-node-v1",
+      "name": "Queue Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        928,
+        1160
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM processing_locks WHERE phone_number = $1",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
+        }
+      },
+      "id": "release-lock-auto-v1",
+      "name": "Release Lock",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3952,
+        976
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM processing_locks WHERE phone_number = $1",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
+        }
+      },
+      "id": "release-lock-manual-v1",
+      "name": "Release Lock (MANUAL)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2048,
+        1096
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE chat_control SET daily_counter = CASE WHEN DATE(last_human_interaction) < CURRENT_DATE THEN 1 ELSE daily_counter + 1 END, last_human_interaction = CASE WHEN DATE(last_human_interaction) < CURRENT_DATE THEN CURRENT_TIMESTAMP ELSE last_human_interaction END WHERE phone_number = $1 RETURNING daily_counter",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
+        }
+      },
+      "id": "increment-counter-v1",
+      "name": "Increment Counter",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1824,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "daily-cap-check",
+              "leftValue": "={{ $json.daily_counter }}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-under-cap-v1",
+      "name": "IF: Under Daily Cap?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "Hemos alcanzado el límite de mensajes por hoy. Por favor escríbenos mañana o llámanos directamente. 🙏",
+        "requestOptions": {}
+      },
+      "id": "send-cap-message-v1",
+      "name": "Send Cap Message",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202409,
+      "position": [
+        3728,
+        976
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "GLDEayRhcouW5kt1",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "Buscar_en_Sitio_Web",
+        "description": "Busca información específica en el sitio web del negocio usando extracción con IA (Firecrawl). Úsala cuando el usuario pregunte por productos, precios, disponibilidad o servicios y la base de conocimiento no tenga la respuesta. Pasa como input la consulta exacta del usuario.",
+        "jsCode": "const config = $('Get Chat Control').item.json;\nconst websiteUrl = config.website_url;\nif (!websiteUrl) return { error: 'No hay sitio web configurado para este negocio' };\nconst apiKey = $env.FIRECRAWL_API_KEY;\nif (!apiKey) return { error: 'Firecrawl no configurado — contacta al administrador' };\nconst userQuery = $input.first().json.query || $input.first().json.input || 'información general';\ntry {\n  const resp = await fetch('https://api.firecrawl.dev/v1/extract', {\n    method: 'POST',\n    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },\n    body: JSON.stringify({\n      urls: [websiteUrl],\n      prompt: `Extrae información relevante sobre: ${userQuery}. Incluye nombres de productos, precios, disponibilidad en stock y referencias o SKU si aplica.`,\n      schema: {\n        type: 'object',\n        properties: {\n          resultados: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, precio: { type: 'string' }, disponibilidad: { type: 'string' }, referencia: { type: 'string' } } } },\n          resumen: { type: 'string' }\n        }\n      }\n    }),\n    signal: AbortSignal.timeout(15000)\n  });\n  const data = await resp.json();\n  if (!data.success) return { error: 'Firecrawl error: ' + (data.error || JSON.stringify(data)) };\n  return data.data || { resumen: 'Sin resultados' };\n} catch(e) { return { error: `Error al consultar el sitio: ${e.message}` }; }"
+      },
+      "id": "web-tool-node-v1",
+      "name": "Consultar Sitio Web",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        2944,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "name": "Consultar_Inventario_ERP",
+        "description": "Consulta el inventario en tiempo real del ERP del negocio (Allegra u otro sistema). Úsala cuando el usuario pregunte por disponibilidad de stock, precios exactos o referencias de productos específicos. Solo funciona si el cliente tiene configurada la integración de inventario.",
+        "jsCode": "const config = $('Get Chat Control').item.json;\nconst allegraUrl = config.allegra_url;\nconst allegraKey = config.allegra_api_key;\nif (!allegraUrl || !allegraKey) return { error: 'Inventario ERP no configurado para este negocio' };\nconst userQuery = $input.first().json.query || $input.first().json.input || '';\ntry {\n  const resp = await fetch(`${allegraUrl}/items?search=${encodeURIComponent(userQuery)}&limit=10`, {\n    headers: { 'Authorization': `Bearer ${allegraKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },\n    signal: AbortSignal.timeout(8000)\n  });\n  if (!resp.ok) return { error: `ERP respondió con error ${resp.status}` };\n  const data = await resp.json();\n  return data;\n} catch(e) { return { error: `Error al consultar inventario: ${e.message}` }; }"
+      },
+      "id": "allegra-tool-node-v1",
+      "name": "Consultar Inventario ERP",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        3072,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "name": "Escalar_a_Humano",
+        "description": "Úsala cuando el usuario pida explícitamente hablar con un humano, asesor o persona real, o cuando esté muy frustrado. Cambia el modo a MANUAL para que un agente humano tome la conversación.",
+        "jsCode": "// Tool simplificado — el UPDATE real lo hace el nodo post-agente \"Update Status MANUAL\"\nreturn 'ESCALATION_CONFIRMED: El cliente será atendido por un asesor humano. Responde amablemente que lo conectas con un asesor ahora.';"
+      },
+      "id": "escalation-tool-v1",
+      "name": "Escalar a Humano",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        2816,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ai-output-exists-check",
+              "leftValue": "={{ ($json.output || '').length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-ai-ok-v1",
+      "name": "Check AI OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2760,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('WAHA Trigger').item.json.session }}",
+        "chatId": "={{ $('WAHA Trigger').item.json.payload.from }}",
+        "text": "Disculpa, estoy teniendo dificultades técnicas en este momento. Por favor intenta de nuevo en unos minutos o escríbenos directamente. 🙏",
+        "requestOptions": {}
+      },
+      "id": "send-fallback-v1",
+      "name": "Send Fallback",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202409,
+      "position": [
+        2960,
+        400
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "GLDEayRhcouW5kt1",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## WAHA AI Business OS - v0.5\n\nNOVEDAD v0.5:\n+ FIX: RAG filtra por phone_number (alineado con portal)\n+ FIX: Stale locks auto-cleanup (5 min timeout)\n+ FIX: AI Agent continueOnFail + Check AI OK? + Send Fallback\n+ Lock nunca queda huerfano — error path siempre libera\n\nFlujo completo:\n1. WAHA Trigger -> Only Messages\n2. Acquire Lock (con auto-cleanup locks >5min)\n3. Get Chat Control (UPSERT) -> Business Hours -> Switch mode\n4. AUTO: Counter -> AI Agent -> Check AI OK?\n   - OK: Check Escalation -> Start Typing -> Wait -> Send Response -> Release Lock\n   - Error: Send Fallback -> Release Lock\n5. MANUAL: No Op -> Release Lock",
         "height": 300,
         "width": 640,
         "color": 7
@@ -344,15 +754,15 @@
     {
       "parameters": {
         "content": "## 🔄 Git Versioning\n\nRequiere 2 credenciales configuradas:\n1. **GitHub account** (GitHub API): Tu Personal Access Token de GitHub\n2. **n8n API Key** (Header Auth): Header=`X-N8N-API-KEY`, Value=tu API key\n\nCambia los valores en el nodo **Git Config** según tu repo.",
-        "height": 260,
+        "height": 196,
         "width": 520,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
       "name": "Sticky Note Git",
       "position": [
-        -16,
-        1104
+        1312,
+        1584
       ],
       "typeVersion": 1,
       "id": "75ed579a-bc95-46b8-8e03-cb50d5d52fc4"
@@ -367,8 +777,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "name": "Sticky Note Push",
       "position": [
-        -16,
-        1392
+        1456,
+        1872
       ],
       "typeVersion": 1,
       "id": "36e13c0a-5510-4276-be9a-d932b1c2309f"
@@ -395,7 +805,7 @@
       "name": "Click to Push to Git",
       "position": [
         32,
-        1440
+        1576
       ],
       "typeVersion": 1,
       "id": "429f32c2-282f-4fe7-b6d6-2237f7df3c5d"
@@ -409,8 +819,8 @@
       "type": "n8n-nodes-base.set",
       "name": "Git Config Push",
       "position": [
-        224,
-        1440
+        256,
+        1576
       ],
       "typeVersion": 3.4,
       "id": "c02d60df-b61c-463c-8173-694acfee6a67"
@@ -425,8 +835,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "name": "GET Workflow from n8n",
       "position": [
-        448,
-        1440
+        480,
+        1576
       ],
       "typeVersion": 4.2,
       "id": "82383b68-011d-4e7e-9824-10ae768ad991",
@@ -444,8 +854,8 @@
       "type": "n8n-nodes-base.code",
       "name": "Prepare Push Payload",
       "position": [
-        672,
-        1440
+        704,
+        1576
       ],
       "typeVersion": 2,
       "id": "f7d08e9e-93cf-49ba-a852-7433fcb0c933"
@@ -471,8 +881,8 @@
       "type": "n8n-nodes-base.github",
       "name": "PUT File to GitHub",
       "position": [
-        896,
-        1440
+        928,
+        1576
       ],
       "typeVersion": 1,
       "id": "a3d8254f-7fa7-45d7-b830-54b47c24e515",
@@ -490,7 +900,7 @@
       "name": "Click to Pull from Git",
       "position": [
         32,
-        1760
+        1800
       ],
       "typeVersion": 1,
       "id": "4d595dab-5f3e-4f5f-98ba-ac7cdc0f5074"
@@ -504,8 +914,8 @@
       "type": "n8n-nodes-base.set",
       "name": "Git Config Pull",
       "position": [
-        224,
-        1760
+        256,
+        1800
       ],
       "typeVersion": 3.4,
       "id": "fa71da20-abc9-49f8-a669-51826cd0e8d4"
@@ -532,8 +942,8 @@
       "type": "n8n-nodes-base.github",
       "name": "GET File from GitHub",
       "position": [
-        448,
-        1760
+        480,
+        1800
       ],
       "typeVersion": 1,
       "id": "80cc0830-6b99-4950-9d2d-e53c68ba0a62",
@@ -552,8 +962,8 @@
       "type": "n8n-nodes-base.code",
       "name": "Parse GitHub Response",
       "position": [
-        672,
-        1760
+        704,
+        1800
       ],
       "typeVersion": 2,
       "id": "2225c622-28d9-464d-ab1f-2cdde5187cbd"
@@ -572,8 +982,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "name": "PUT Workflow to n8n",
       "position": [
-        880,
-        1760
+        928,
+        1800
       ],
       "typeVersion": 4.2,
       "id": "a50c35a5-8614-4d2c-b9ed-449b683ee033",
@@ -583,6 +993,60 @@
           "name": "n8n API Key"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "escalation-check-1",
+              "leftValue": "={{ JSON.stringify($json.intermediateSteps || '') }}",
+              "rightValue": "Escalar_a_Humano",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2880,
+        624
+      ],
+      "id": "check-escalation-v1",
+      "name": "Check Escalation"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE chat_control SET status = 'MANUAL', last_human_interaction = NOW() WHERE phone_number = $1",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3080,
+        480
+      ],
+      "id": "update-status-manual-v1",
+      "name": "Update Status MANUAL",
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
   "connections": {
@@ -590,7 +1054,54 @@
       "main": [
         [
           {
+            "node": "Only Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Only Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only Messages": {
+      "main": [
+        [
+          {
+            "node": "Acquire Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquire Lock": {
+      "main": [
+        [
+          {
+            "node": "IF: Lock Acquired?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Lock Acquired?": {
+      "main": [
+        [
+          {
             "node": "Get Chat Control",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Queue Message",
             "type": "main",
             "index": 0
           }
@@ -601,7 +1112,47 @@
       "main": [
         [
           {
+            "node": "Check Business Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Business Hours": {
+      "main": [
+        [
+          {
+            "node": "IF: Within Hours?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Within Hours?": {
+      "main": [
+        [
+          {
             "node": "Switch (mode)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Outside Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Outside Hours": {
+      "main": [
+        [
+          {
+            "node": "Release Lock",
             "type": "main",
             "index": 0
           }
@@ -612,7 +1163,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Increment Counter",
             "type": "main",
             "index": 0
           },
@@ -625,6 +1176,46 @@
         [
           {
             "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Counter": {
+      "main": [
+        [
+          {
+            "node": "IF: Under Daily Cap?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Under Daily Cap?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Cap Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Cap Message": {
+      "main": [
+        [
+          {
+            "node": "Release Lock",
             "type": "main",
             "index": 0
           }
@@ -664,6 +1255,39 @@
         ]
       ]
     },
+    "Escalar a Humano": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Sitio Web": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Inventario ERP": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Ollama Embeddings": {
       "ai_embedding": [
         [
@@ -679,7 +1303,36 @@
       "main": [
         [
           {
-            "node": "Start Typing",
+            "node": "Check AI OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check AI OK?": {
+      "main": [
+        [
+          {
+            "node": "Check Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Fallback": {
+      "main": [
+        [
+          {
+            "node": "Release Lock",
             "type": "main",
             "index": 0
           }
@@ -785,11 +1438,62 @@
         ]
       ]
     },
+    "Send ia response": {
+      "main": [
+        [
+          {
+            "node": "Release Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Release Lock (MANUAL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Parse GitHub Response": {
       "main": [
         [
           {
             "node": "PUT Workflow to n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Escalation": {
+      "main": [
+        [
+          {
+            "node": "Update Status MANUAL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Start Typing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status MANUAL": {
+      "main": [
+        [
+          {
+            "node": "Start Typing",
             "type": "main",
             "index": 0
           }
@@ -808,62 +1512,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "6599b5bf-4e43-488f-bd41-866b89d93e3c",
   "activeVersionId": null,
-  "versionCounter": 19,
+  "versionCounter": 74,
   "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2026-03-04T23:12:43.279Z",
-      "createdAt": "2026-03-04T23:12:43.279Z",
-      "role": "workflow:owner",
-      "workflowId": "nSsRhEbujpKWX6ZmGaDpc",
-      "projectId": "UhQWd7l5fYh7qK52",
-      "project": {
-        "updatedAt": "2026-02-05T17:58:08.816Z",
-        "createdAt": "2026-02-05T17:45:27.977Z",
-        "id": "UhQWd7l5fYh7qK52",
-        "name": "Andres David Nino C <deivnino@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "cb047560-0459-432a-adcc-14365d6d9b37",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-05T17:45:27.978Z",
-            "createdAt": "2026-02-05T17:45:27.978Z",
-            "userId": "cb047560-0459-432a-adcc-14365d6d9b37",
-            "projectId": "UhQWd7l5fYh7qK52",
-            "user": {
-              "updatedAt": "2026-03-17T15:08:38.000Z",
-              "createdAt": "2026-02-05T17:45:27.236Z",
-              "id": "cb047560-0459-432a-adcc-14365d6d9b37",
-              "email": "deivnino@gmail.com",
-              "firstName": "Andres David",
-              "lastName": "Nino C",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-05T17:58:33.637Z",
-                "personalization_survey_n8n_version": "2.6.3",
-                "companySize": "<20",
-                "companyType": "education",
-                "role": "business-owner",
-                "reportedSource": "youtube"
-              },
-              "settings": {
-                "userActivated": false,
-                "easyAIWorkflowOnboarded": true
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-03-17",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
   "tags": [],
   "activeVersion": null
 }

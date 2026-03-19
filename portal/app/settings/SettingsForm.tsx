@@ -217,6 +217,37 @@ export default function SettingsForm({ token, initialSettings }: Props) {
           </Card>
         )}
 
+        {/* Integración de Inventario */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-slate-100 text-sm font-medium">Integración de Inventario</CardTitle>
+            <p className="text-slate-500 text-xs">Opcional — conecta con tu ERP (Allegra u otro) para consultas en tiempo real</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-slate-400 text-xs">URL del API de inventario</Label>
+              <Input
+                value={settings.allegra_url ?? ""}
+                onChange={(e) => setSettings((p) => ({ ...p, allegra_url: e.target.value || null }))}
+                placeholder="https://api.allegra.com/v1"
+                type="url"
+                className="bg-slate-800 border-slate-700 text-slate-200 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-400 text-xs">API Key del inventario</Label>
+              <Input
+                value={settings.allegra_api_key ?? ""}
+                onChange={(e) => setSettings((p) => ({ ...p, allegra_api_key: e.target.value || null }))}
+                placeholder="sk-..."
+                type="password"
+                className="bg-slate-800 border-slate-700 text-slate-200 text-sm"
+              />
+              <p className="text-slate-600 text-xs">Déjalo vacío si no usas integración de inventario.</p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Separator className="border-slate-800" />
 
         {/* Save */}

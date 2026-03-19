@@ -116,6 +116,29 @@
 
 ---
 
+## Prioridad Alta (Arquitectura Multi-tenant)
+
+### Separar `chat_control` en `clients` + `chat_control`
+- **Problema**: `chat_control` hace dos trabajos: registro estático de cliente (business_name, auth_token, tier…) y estado operacional por conversación (status, daily_counter, locks…). No escala para multi-tenant.
+- **Solución**: Crear tabla `clients` para config estática, conservar `chat_control` solo para estado operacional, unirlas por `phone_number`.
+- **Impacto**: Requiere migrar portal + workflow. Post-MVP.
+
+### RAG filtrado por cliente en Qdrant (multi-tenant)
+- **Problema**: El workflow n8n busca en `knowledge_base` sin filtrar por cliente. Con múltiples negocios en el mismo Qdrant, el agente del negocio A podría ver datos del negocio B.
+- **Opción A — filtro por phone_number (MVP)**: Agregar al nodo Qdrant:
+  ```json
+  "filter": { "must": [{ "key": "phone_number", "match": { "value": "{{ $('WAHA Trigger').item.json.payload.from }}" } }] }
+  ```
+  El upload ya guarda `phone_number` en el payload ✅. Suficiente para beta.
+- **Opción B — colección por cliente (producción)**: Nombre dinámico `knowledge_{{ $('WAHA Trigger').item.json.session }}`. Aislamiento total, fácil de borrar por cliente, mejor performance. El nodo Qdrant en n8n ya acepta expresiones en el nombre de colección. Requiere actualizar el portal upload para usar la colección correcta.
+- **Impacto**: **Crítico antes de agregar segundo cliente.**
+
+### ~~Ollama en docker-compose (stack autocontenido)~~ ✅ Resuelto 2026-03-18
+- Servicio `ollama` agregado al docker-compose con entrypoint que hace pull automático de `nomic-embed-text`.
+- **Pendiente**: actualizar credencial Ollama en n8n de `http://host.docker.internal:11434` → `http://ollama:11434`
+
+---
+
 ## Prioridad Alta (Portal)
 
 ### IP Whitelist por cliente
@@ -123,6 +146,43 @@
 - **Solución propuesta**: Guardar `allowed_ips TEXT[]` en `chat_control`. En el middleware de Next.js (`middleware.ts`), verificar que `req.ip` esté en la lista antes de servir cualquier ruta del portal. Fallback: rate limiting por token (max 100 req/hora).
 - **Implementación**: `middleware.ts` en `portal/` + columna `allowed_ips` en Postgres + UI en `/settings` para agregar/quitar IPs.
 - **Prioridad**: Media-Alta — implementar antes de deploy en producción con clientes reales.
+
+---
+
+## Prioridad Alta (Pre-producción — pendientes críticos)
+
+### Fix: `Escalar a Humano` tool no funciona
+- **Problema**: El tool usa `$helpers.pool.query()` que no existe en el contexto de `toolCode` en n8n. El agente puede llamar el tool pero el status nunca se actualiza a MANUAL en Postgres.
+- **Solución**: Reemplazar `toolCode` por un `toolWorkflow` que llame a un sub-workflow de n8n dedicado a hacer el UPDATE, o inyectar la lógica como un nodo post-agente que parsea la respuesta y actualiza si detecta `action: escalate`.
+- **Workaround temporal**: El agente responde el mensaje de escalación pero el chat queda en AUTO. El humano debe cambiar manualmente a MANUAL desde el portal.
+
+### Notificación al humano en escalaciones
+- **Problema**: Cuando el agente escala a humano, nadie se entera. El dueño del negocio no sabe que hay un cliente esperando. No hay canal de notificación.
+- **Solución propuesta**:
+  - Agregar columna `agent_whatsapp TEXT` en `chat_control` (número del agente/dueño que recibe alertas)
+  - En el flujo de escalación: después de poner status=MANUAL, enviar mensaje via WAHA al `agent_whatsapp`:
+    ```
+    🔔 *Escalación requerida*
+    Cliente: {phone_number}
+    Último mensaje: {mensaje_del_cliente}
+    Responde directo desde WhatsApp o ve al portal.
+    ```
+  - El agente puede responder desde su celular directamente al cliente (WAHA actúa como bridge)
+- **Alternativa futura**: Integrar con Slack, email o Telegram para notificaciones
+- **Impacto**: Alto — sin esto el "paso a humano" no funciona en producción real.
+
+### ~~RAG no filtra por cliente (Qdrant multi-tenant)~~ ✅ Resuelto 2026-03-18
+- **Fix aplicado**: Filtro Qdrant cambiado de `session` (no existía en vectores) a `phone_number` (alineado con portal upload).
+- **Extras**: Stale lock auto-cleanup (5min), AI Agent error handling con fallback message, Check AI OK? gate.
+- **Versión**: Workflow dev v0.5
+
+### Portal: rebuild requerido tras cambios TypeScript
+- **Problema**: Los cambios a `types.ts`, `SettingsForm.tsx` y `route.ts` requieren rebuild del contenedor portal.
+- **Acción**: `docker compose up --build portal -d`
+
+### Qdrant collection por cliente (en upload)
+- **Problema actual**: El portal sube archivos a colección `knowledge_base` fija. Con múltiples clientes necesitas colecciones separadas o filtros por `phone_number`.
+- **Solución**: Ya hay `phone_number` en el payload de cada chunk ✅ — el filtro Qdrant es suficiente para MVP. Colecciones separadas son mejor para escala pero no urgente.
 
 ---
 
@@ -135,5 +195,152 @@
 - **Pendiente**: `/settings` (horarios, modo), `/dashboard` (métricas), upload RAG
 
 ---
+
+---
+
+## 🚀 Migración a FastAPI + LangGraph (Post-validación Beta)
+
+### Cuándo migrar
+Cuando n8n se convierta en bottleneck real: 2-3 clientes pagando, testing imposible, o lógica demasiado compleja para nodos visuales. **No antes de validar ROI con beta.**
+
+### Stack destino
+| Componente | Tecnología |
+|-----------|-----------|
+| API / Webhooks | FastAPI |
+| Agent Orchestration | LangGraph (grafo visual + debugging) |
+| RAG Embeddings | Gemini Embeddings 2.0 (multimodal) o Ollama (fallback local) |
+| RAG Vector DB | Qdrant (se reutiliza) |
+| Testing | pytest + pytest-asyncio |
+| Visualización de flujos | LangGraph Studio (equivalente visual a n8n) |
+| DB | PostgreSQL (se reutiliza) |
+| Deploy | Coolify / Docker (se reutiliza) |
+
+### Estructura multi-agente con Claude Code
+
+La migración se ejecuta desde este mismo repo usando **agentes especializados de Claude Code** en subcarpetas. Cada agente tiene su contexto, su CLAUDE.md y su responsabilidad:
+
+```
+openclaw/
+├── n8n-waha-docker/          ← Proyecto actual (n8n, referencia)
+│   ├── CLAUDE.md
+│   └── ...
+│
+└── whatsapp-ai-api/          ← Proyecto FastAPI (nuevo)
+    ├── CLAUDE.md              ← Contexto maestro del proyecto FastAPI
+    │
+    ├── agents/                ← Agentes Claude Code especializados
+    │   ├── 01-requirements/
+    │   │   └── CLAUDE.md      ← Agente: Requerimientos / Historia de negocio
+    │   │                        Input: CLAUDE.md del proyecto n8n, entrevistas con David
+    │   │                        Output: PRD, user stories, acceptance criteria
+    │   │
+    │   ├── 02-architecture/
+    │   │   └── CLAUDE.md      ← Agente: Diseño / Arquitectura
+    │   │                        Input: PRD del agente 01
+    │   │                        Output: diagramas, schemas, API contracts, DB migrations
+    │   │
+    │   ├── 03-development/
+    │   │   └── CLAUDE.md      ← Agente: Desarrollo + Tests unitarios + Versionado
+    │   │                        Input: arquitectura del agente 02
+    │   │                        Output: código FastAPI + LangGraph, unit tests, commits
+    │   │                        Tools: pytest, git, linters
+    │   │
+    │   ├── 04-qa/
+    │   │   └── CLAUDE.md      ← Agente: QA / Tests E2E automáticos
+    │   │                        Input: código del agente 03
+    │   │                        Output: test suite E2E, integration tests, load tests
+    │   │                        Tools: pytest, httpx, Playwright (portal), k6 (load)
+    │   │
+    │   └── 05-deployment/
+    │       └── CLAUDE.md      ← Agente: Deployment / Infra
+    │                            Input: código probado del agente 03+04
+    │                            Output: Dockerfiles, docker-compose, Coolify config,
+    │                                    CI/CD pipeline, monitoring, backups
+    │
+    ├── src/
+    │   ├── main.py            ← FastAPI app
+    │   ├── agents/            ← LangGraph agent definitions
+    │   │   ├── customer_agent.py    ← Agente principal (reemplaza AI Agent de n8n)
+    │   │   ├── rag_tool.py          ← RAG search tool
+    │   │   ├── inventory_tool.py    ← MCP Router (Allegra/Sheets/mock)
+    │   │   └── escalation_tool.py   ← Escalación a humano
+    │   ├── middleware/
+    │   │   ├── locks.py       ← Velocity gate (try/catch nativo, adiós locks huérfanos)
+    │   │   ├── business_hours.py
+    │   │   └── rate_limit.py
+    │   ├── models/            ← SQLAlchemy / Pydantic
+    │   └── routers/           ← FastAPI routers (webhook, portal API)
+    │
+    ├── tests/
+    │   ├── unit/              ← pytest: cada componente aislado
+    │   ├── integration/       ← pytest: flujo completo con DB real
+    │   └── e2e/               ← Playwright + httpx: portal + WhatsApp mock
+    │
+    ├── docker-compose.yml
+    ├── Dockerfile
+    └── pyproject.toml
+```
+
+### Workflow de migración por fases
+
+**Fase 1 — Agente 01 (Requerimientos)**:
+- Revisar CLAUDE.md + workflow n8n + docs existentes
+- Documentar TODOS los flujos como user stories con acceptance criteria
+- Identificar lo que n8n hace bien vs. lo que es workaround
+
+**Fase 2 — Agente 02 (Arquitectura)**:
+- Diseñar API contracts (OpenAPI spec)
+- Definir LangGraph state graph (equivalente visual al workflow n8n)
+- Schema DB unificado (resolver deuda técnica SQL de una vez)
+
+**Fase 3 — Agente 03 (Desarrollo)**:
+- Implementar endpoint por endpoint con TDD
+- Unit tests para cada componente (locks, business hours, RAG, escalation)
+- Git commits semánticos, branches por feature
+
+**Fase 4 — Agente 04 (QA)**:
+- E2E tests: simular mensaje WhatsApp → verificar respuesta
+- Integration tests: webhook → DB → Qdrant → LLM → response
+- Load tests: verificar que soporta N mensajes concurrentes
+
+**Fase 5 — Agente 05 (Deployment)**:
+- Dockerizar, Coolify config, DNS, SSL
+- CI/CD: GitHub Actions → tests → deploy automático
+- Monitoring: health checks, alertas, logs centralizados
+
+### RAG Multimodal con Gemini Embeddings 2.0 (Post-beta)
+
+**Referencia**: [Google y Claude Code cambian el RAG para siempre](http://www.youtube.com/watch?v=74iB941XRPk) — Agustín Medina
+
+**Problema actual**: El pipeline RAG extrae texto plano de PDFs (OCR) y lo embede con Ollama/nomic-embed-text. Se pierden tablas, diagramas, pinouts e imágenes de productos — contenido crítico para una tienda de electrónica.
+
+**Solución**: Gemini Embeddings 2.0 procesa texto, imagen, video y audio en un **espacio de incrustación unificado**. Un datasheet con tabla de specs + diagrama de pines se embede completo, sin perder contexto visual.
+
+**Impacto para el negocio**:
+- Catálogos de componentes con tablas de specs → búsqueda precisa por parámetros visuales
+- Manuales técnicos con diagramas → el agente responde "cómo conectar X" con la imagen exacta
+- Datasheets de fabricantes → embeddings que entienden pinouts, footprints, valores de resistencias
+
+**Implementación (en la migración FastAPI)**:
+```
+PDF/imagen → Gemini Embeddings 2.0 API → Qdrant → RAG multimodal
+```
+- Reemplaza Ollama embeddings por Gemini API en el pipeline de ingesta
+- Qdrant compatible (solo cambia dimensión del vector)
+- Costo: API de pago (Google AI Studio) — evaluar vs. valor del caso de uso
+- Fallback: mantener Ollama/nomic-embed-text para clientes que no requieran multimodal
+
+**Timing**: No para beta actual (agrega riesgo). Implementar en Fase 3 de la migración FastAPI, cuando el pipeline de ingesta se reescriba en Python con tests.
+
+### Ventajas de la migración
+- **Testing real**: pytest con mocks de LLM, assertions exactas, CI/CD
+- **Error handling nativo**: try/catch en vez de locks huérfanos
+- **Visualización**: LangGraph Studio muestra el grafo como n8n
+- **Multi-tenant limpio**: middleware de FastAPI, no hacks en nodos
+- **Velocidad de desarrollo**: Claude Code con agentes especializados, no edición manual de JSON
+
+---
+
+revisar si es posible que TODO (a excepcion del despliegue coolify) cambie por cliente para temas de facturacion.. ejemplo la api key de claude etc..
 
 *Este documento se actualizará conforme se resuelvan los puntos.*

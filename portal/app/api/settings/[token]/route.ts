@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const { token } = await params;
 
   const result = await pool.query(
-    `SELECT phone_number, client_name, business_name, website_url, status, is_vip, outside_hours_enabled, business_hours
+    `SELECT phone_number, client_name, business_name, website_url, status, is_vip, outside_hours_enabled, business_hours, allegra_url, allegra_api_key
      FROM chat_control WHERE auth_token = $1 LIMIT 1`,
     [token]
   );
@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { token } = await params;
 
   const body = await req.json();
-  const { status, is_vip, outside_hours_enabled, business_hours, client_name, business_name, website_url } = body;
+  const { status, is_vip, outside_hours_enabled, business_hours, client_name, business_name, website_url, allegra_url, allegra_api_key } = body;
 
   const result = await pool.query(
     `UPDATE chat_control
@@ -34,12 +34,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
          business_hours       = COALESCE($4, business_hours),
          client_name          = COALESCE($5, client_name),
          business_name        = COALESCE($6, business_name),
-         website_url          = COALESCE($7, website_url)
+         website_url          = COALESCE($7, website_url),
+         allegra_url          = COALESCE($9, allegra_url),
+         allegra_api_key      = COALESCE($10, allegra_api_key)
      WHERE auth_token = $8
-     RETURNING phone_number, client_name, business_name, website_url, status, is_vip, outside_hours_enabled, business_hours`,
+     RETURNING phone_number, client_name, business_name, website_url, status, is_vip, outside_hours_enabled, business_hours, allegra_url, allegra_api_key`,
     [status ?? null, is_vip ?? null, outside_hours_enabled ?? null,
      business_hours ? JSON.stringify(business_hours) : null,
-     client_name ?? null, business_name ?? null, website_url ?? null, token]
+     client_name ?? null, business_name ?? null, website_url ?? null, token,
+     allegra_url ?? null, allegra_api_key ?? null]
   );
 
   if (result.rowCount === 0) {
