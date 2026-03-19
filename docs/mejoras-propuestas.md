@@ -420,4 +420,19 @@ Revisar si es posible que TODO (a excepción del despliegue Coolify) cambie por 
 
 ---
 
+## Prioridad Alta (Migración WhatsApp API)
+
+### Migrar de WAHA a WhatsApp Business API (Fase 2-3)
+- **Problema**: WAHA usa web scraping del WhatsApp web, lo que implica riesgo de ban, necesidad de lógica de delay/typing simulation, hard cap de 50 mensajes, y re-autenticación manual por QR.
+- **Solución**: Migrar a la **API oficial de WhatsApp Business** (Cloud API de Meta). Elimina:
+  - Riesgo de ban (es la API oficial)
+  - Lógica de delay/typing (no necesaria con API oficial)
+  - Hard cap artificial (los límites son los de Meta, mucho más altos)
+  - Re-autenticación QR (auth por token, no por sesión web)
+- **Costo**: La API oficial cobra por mensaje (~$0.005-0.08 USD según tipo y país). Se traslada al cliente como parte del tier "High Ticket".
+- **Timing**: Fase 2-3, cuando haya clientes pagando que justifiquen el costo. WAHA sigue siendo válido para beta/demo.
+- **Impacto**: Elimina toda la deuda técnica de anti-ban, delays, QR portal, y WAHA session management.
+
+---
+
 *Este documento se actualizará conforme se resuelvan los puntos.*

@@ -519,6 +519,7 @@
       "name": "Queue Message",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
+      "disabled": true,
       "position": [
         928,
         1160
@@ -1120,11 +1121,6 @@
             "node": "Get Business Config",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Get Chat Control",
-            "type": "main",
-            "index": 0
           }
         ],
         [
@@ -1140,7 +1136,7 @@
       "main": [
         [
           {
-            "node": "Check Business Hours",
+            "node": "Get Chat Control",
             "type": "main",
             "index": 0
           }
