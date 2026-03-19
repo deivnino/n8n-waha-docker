@@ -184,6 +184,23 @@ services:
   #    #           count: all
   #    #           capabilities: [gpu]
 
+  # Crawl4AI — Reemplazo open-source de Firecrawl para scraping web con IA
+  # Descomentar cuando se migre de Firecrawl a Crawl4AI (Fase 2)
+  # Docs: https://github.com/unclecode/crawl4ai
+  # crawl4ai:
+  #   image: unclecode/crawl4ai:latest
+  #   container_name: crawl4ai
+  #   ports:
+  #     - "11235:11235"
+  #   environment:
+  #     - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
+  #     - MAX_CONCURRENT_TASKS=5
+  #   volumes:
+  #     - crawl4ai_data:/app/data
+  #   networks:
+  #     - n8n-network
+  #   restart: unless-stopped
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
@@ -208,6 +225,7 @@ volumes:
   computer_use_data:
   postgres_data:
   qdrant_data:
+  # crawl4ai_data:
   #  ollama_data:
   # redis_data:
   #pgadmin_data:

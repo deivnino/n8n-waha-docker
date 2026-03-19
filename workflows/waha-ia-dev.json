@@ -62,7 +62,7 @@
         "promptType": "define",
         "text": "={{ $('WAHA Trigger').item.json.payload.body }}",
         "options": {
-          "systemMessage": "={{ (() => {\nconst config = $('Get Chat Control').item.json;\nconst name = config.business_name || 'nuestro negocio';\nconst web = config.website_url || '';\nreturn `Eres el asistente virtual de ${name}. Representas al negocio directamente — habla como parte del equipo, no como un bot externo.\n\nTIENES 4 HERRAMIENTAS DISPONIBLES. USALAS ACTIVAMENTE:\n1. **Buscar_en_Base_de_Conocimiento** — SIEMPRE usala PRIMERO para cualquier pregunta sobre productos, precios, servicios, horarios o el negocio.\n2. **Consultar_Sitio_Web** — Si la base de conocimiento no tiene la respuesta${web ? ', busca en ' + web : ''}. Usa esta herramienta para consultas sobre productos o disponibilidad.\n3. **Consultar_Inventario_ERP** — Para verificar stock o precios exactos en tiempo real (solo si el cliente tiene ERP configurado).\n4. **Escalar_a_Humano** — SOLO si el cliente pide hablar con una persona real o esta muy frustrado.\n\nREGLAS:\n1. BUSCA en tus herramientas ANTES de responder. No respondas de memoria.\n2. Si ninguna herramienta devuelve informacion relevante, di: \"No tengo esa informacion a mano, quieres que te conecte con un asesor?\"\n3. NUNCA inventes precios, disponibilidad ni datos del negocio.\n4. Responde en el mismo idioma del cliente.\n5. Se conciso y directo. Maximo 2-3 parrafos cortos.\n6. Usa maximo 2 emojis por mensaje.\n7. Si el cliente pide un humano o esta frustrado, usa la herramienta Escalar_a_Humano inmediatamente.\n\nTONO: Calido, profesional y eficiente. Como un vendedor experto que conoce su catalogo.`;\n})() }}"
+          "systemMessage": "={{ (() => {\nconst config = $('Get Business Config').item.json;\nconst name = config.business_name || 'nuestro negocio';\nconst web = config.website_url || '';\nreturn `Eres el asistente virtual de ${name}. Representas al negocio directamente — habla como parte del equipo, no como un bot externo.\n\nTIENES 4 HERRAMIENTAS DISPONIBLES. USALAS ACTIVAMENTE:\n1. **Buscar_en_Base_de_Conocimiento** — SIEMPRE usala PRIMERO para cualquier pregunta sobre productos, precios, servicios, horarios o el negocio.\n2. **Consultar_Sitio_Web** — Si la base de conocimiento no tiene la respuesta${web ? ', busca en ' + web : ''}. Usa esta herramienta para consultas sobre productos o disponibilidad.\n3. **Consultar_Inventario_ERP** — Para verificar stock o precios exactos en tiempo real (solo si el cliente tiene ERP configurado).\n4. **Escalar_a_Humano** — SOLO si el cliente pide hablar con una persona real o esta muy frustrado.\n\nREGLAS:\n1. BUSCA en tus herramientas ANTES de responder. No respondas de memoria.\n2. Si ninguna herramienta devuelve informacion relevante, di: \"No tengo esa informacion a mano, quieres que te conecte con un asesor?\"\n3. NUNCA inventes precios, disponibilidad ni datos del negocio.\n4. Responde en el mismo idioma del cliente.\n5. Se conciso y directo. Maximo 2-3 parrafos cortos.\n6. Usa maximo 2 emojis por mensaje.\n7. Si el cliente pide un humano o esta frustrado, usa la herramienta Escalar_a_Humano inmediatamente.\n\nTONO: Calido, profesional y eficiente. Como un vendedor experto que conoce su catalogo.`;\n})() }}"
         }
       },
       "id": "e3f6458b-2816-4788-8c24-a2f503c18547",
@@ -134,7 +134,7 @@
           "mode": "name"
         },
         "options": {
-          "searchFilterJson": "={{ JSON.stringify({\"must\": [{\"key\": \"phone_number\", \"match\": {\"value\": $(\"WAHA Trigger\").item.json.payload.from}}]}) }}"
+          "searchFilterJson": "={{ JSON.stringify({\"must\": [{\"key\": \"phone_number\", \"match\": {\"value\": $(\"Get Business Config\").item.json.phone_number}}]}) }}"
         }
       },
       "id": "eb50f1f6-1fdf-4d34-959c-84ecae7845e9",
@@ -268,7 +268,30 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET phone_number = EXCLUDED.phone_number RETURNING phone_number, status, is_vip, business_name, business_hours, outside_hours_enabled, website_url, allegra_url, allegra_api_key",
+        "query": "SELECT phone_number, business_name, business_hours, outside_hours_enabled, website_url, allegra_url, allegra_api_key FROM chat_control WHERE waha_session_id = $1 AND business_name IS NOT NULL LIMIT 1",
+        "options": {
+          "queryReplacement": "={{ [$('WAHA Trigger').item.json.session] }}"
+        }
+      },
+      "id": "get-business-config-v1",
+      "name": "Get Business Config",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        928,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "MpT6kay8Q7oxgRNE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET phone_number = EXCLUDED.phone_number RETURNING phone_number, status, is_vip, daily_counter, last_human_interaction",
         "options": {
           "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
         }
@@ -290,7 +313,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $input.first().json;\nconst bh = config.business_hours;\n\n// Si business_hours no está configurado o outside_hours_enabled es false, siempre pasar\nif (!bh || !config.outside_hours_enabled) {\n  return [{ json: { ...config, within_hours: true } }];\n}\n\n// Hora actual en Colombia (GMT-5)\nconst now = new Date();\nconst colombiaOffset = -5 * 60;\nconst utcMinutes = now.getTime() / 60000 + now.getTimezoneOffset();\nconst colombiaDate = new Date((utcMinutes + colombiaOffset) * 60000);\n\nconst days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];\nconst dayName = days[colombiaDate.getDay()];\nconst currentHour = colombiaDate.getHours();\nconst currentMin = colombiaDate.getMinutes();\nconst currentTotal = currentHour * 60 + currentMin;\n\nconst schedule = bh.schedule || {};\nconst dayConfig = schedule[dayName];\n\nlet withinHours = false;\nif (dayConfig && dayConfig.enabled) {\n  const [openH, openM] = dayConfig.open.split(':').map(Number);\n  const [closeH, closeM] = dayConfig.close.split(':').map(Number);\n  const openTotal = openH * 60 + openM;\n  const closeTotal = closeH * 60 + closeM;\n  withinHours = currentTotal >= openTotal && currentTotal < closeTotal;\n}\n\nreturn [{ json: { ...config, within_hours: withinHours, outside_message: bh.outside_message || 'Estamos fuera de horario. Te responderemos pronto.' } }];"
+        "jsCode": "// Merge: business config (horarios) + customer state (status, is_vip)\nconst biz = $('Get Business Config').first().json;\nconst customer = $('Get Chat Control').first().json;\nconst merged = { ...biz, ...customer };\nconst bh = biz.business_hours;\n\n// Si business_hours no está configurado o outside_hours_enabled es false, siempre pasar\nif (!bh || !biz.outside_hours_enabled) {\n  return [{ json: { ...merged, within_hours: true } }];\n}\n\n// Hora actual en Colombia (GMT-5)\nconst now = new Date();\nconst colombiaOffset = -5 * 60;\nconst utcMinutes = now.getTime() / 60000 + now.getTimezoneOffset();\nconst colombiaDate = new Date((utcMinutes + colombiaOffset) * 60000);\n\nconst days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];\nconst dayName = days[colombiaDate.getDay()];\nconst currentHour = colombiaDate.getHours();\nconst currentMin = colombiaDate.getMinutes();\nconst currentTotal = currentHour * 60 + currentMin;\n\nconst schedule = bh.schedule || {};\nconst dayConfig = schedule[dayName];\n\nlet withinHours = false;\nif (dayConfig && dayConfig.enabled) {\n  const [openH, openM] = dayConfig.open.split(':').map(Number);\n  const [closeH, closeM] = dayConfig.close.split(':').map(Number);\n  const openTotal = openH * 60 + openM;\n  const closeTotal = closeH * 60 + closeM;\n  withinHours = currentTotal >= openTotal && currentTotal < closeTotal;\n}\n\nreturn [{ json: { ...merged, within_hours: withinHours, outside_message: bh.outside_message || 'Estamos fuera de horario. Te responderemos pronto.' } }];"
       },
       "id": "check-business-hours-v1",
       "name": "Check Business Hours",
@@ -635,9 +658,9 @@
     },
     {
       "parameters": {
-        "name": "Buscar_en_Sitio_Web",
+        "name": "Consultar_Sitio_Web",
         "description": "Busca información específica en el sitio web del negocio usando extracción con IA (Firecrawl). Úsala cuando el usuario pregunte por productos, precios, disponibilidad o servicios y la base de conocimiento no tenga la respuesta. Pasa como input la consulta exacta del usuario.",
-        "jsCode": "const config = $('Get Chat Control').item.json;\nconst websiteUrl = config.website_url;\nif (!websiteUrl) return { error: 'No hay sitio web configurado para este negocio' };\nconst apiKey = $env.FIRECRAWL_API_KEY;\nif (!apiKey) return { error: 'Firecrawl no configurado — contacta al administrador' };\nconst userQuery = $input.first().json.query || $input.first().json.input || 'información general';\ntry {\n  const resp = await fetch('https://api.firecrawl.dev/v1/extract', {\n    method: 'POST',\n    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },\n    body: JSON.stringify({\n      urls: [websiteUrl],\n      prompt: `Extrae información relevante sobre: ${userQuery}. Incluye nombres de productos, precios, disponibilidad en stock y referencias o SKU si aplica.`,\n      schema: {\n        type: 'object',\n        properties: {\n          resultados: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, precio: { type: 'string' }, disponibilidad: { type: 'string' }, referencia: { type: 'string' } } } },\n          resumen: { type: 'string' }\n        }\n      }\n    }),\n    signal: AbortSignal.timeout(15000)\n  });\n  const data = await resp.json();\n  if (!data.success) return { error: 'Firecrawl error: ' + (data.error || JSON.stringify(data)) };\n  return data.data || { resumen: 'Sin resultados' };\n} catch(e) { return { error: `Error al consultar el sitio: ${e.message}` }; }"
+        "jsCode": "const config = $('Get Business Config').item.json;\nconst websiteUrl = config.website_url;\nif (!websiteUrl) return { error: 'No hay sitio web configurado para este negocio' };\nconst apiKey = $env.FIRECRAWL_API_KEY;\nif (!apiKey) return { error: 'Firecrawl no configurado — contacta al administrador' };\nconst userQuery = $input.first().json.query || $input.first().json.input || 'información general';\ntry {\n  const resp = await fetch('https://api.firecrawl.dev/v1/extract', {\n    method: 'POST',\n    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },\n    body: JSON.stringify({\n      urls: [websiteUrl],\n      prompt: `Extrae información relevante sobre: ${userQuery}. Incluye nombres de productos, precios, disponibilidad en stock y referencias o SKU si aplica.`,\n      schema: {\n        type: 'object',\n        properties: {\n          resultados: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, precio: { type: 'string' }, disponibilidad: { type: 'string' }, referencia: { type: 'string' } } } },\n          resumen: { type: 'string' }\n        }\n      }\n    }),\n    signal: AbortSignal.timeout(15000)\n  });\n  const data = await resp.json();\n  if (!data.success) return { error: 'Firecrawl error: ' + (data.error || JSON.stringify(data)) };\n  return data.data || { resumen: 'Sin resultados' };\n} catch(e) { return { error: `Error al consultar el sitio: ${e.message}` }; }"
       },
       "id": "web-tool-node-v1",
       "name": "Consultar Sitio Web",
@@ -652,7 +675,7 @@
       "parameters": {
         "name": "Consultar_Inventario_ERP",
         "description": "Consulta el inventario en tiempo real del ERP del negocio (Allegra u otro sistema). Úsala cuando el usuario pregunte por disponibilidad de stock, precios exactos o referencias de productos específicos. Solo funciona si el cliente tiene configurada la integración de inventario.",
-        "jsCode": "const config = $('Get Chat Control').item.json;\nconst allegraUrl = config.allegra_url;\nconst allegraKey = config.allegra_api_key;\nif (!allegraUrl || !allegraKey) return { error: 'Inventario ERP no configurado para este negocio' };\nconst userQuery = $input.first().json.query || $input.first().json.input || '';\ntry {\n  const resp = await fetch(`${allegraUrl}/items?search=${encodeURIComponent(userQuery)}&limit=10`, {\n    headers: { 'Authorization': `Bearer ${allegraKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },\n    signal: AbortSignal.timeout(8000)\n  });\n  if (!resp.ok) return { error: `ERP respondió con error ${resp.status}` };\n  const data = await resp.json();\n  return data;\n} catch(e) { return { error: `Error al consultar inventario: ${e.message}` }; }"
+        "jsCode": "const config = $('Get Business Config').item.json;\nconst allegraUrl = config.allegra_url;\nconst allegraKey = config.allegra_api_key;\nif (!allegraUrl || !allegraKey) return { error: 'Inventario ERP no configurado para este negocio' };\nconst userQuery = $input.first().json.query || $input.first().json.input || '';\ntry {\n  const resp = await fetch(`${allegraUrl}/items?search=${encodeURIComponent(userQuery)}&limit=10`, {\n    headers: { 'Authorization': `Bearer ${allegraKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },\n    signal: AbortSignal.timeout(8000)\n  });\n  if (!resp.ok) return { error: `ERP respondió con error ${resp.status}` };\n  const data = await resp.json();\n  return data;\n} catch(e) { return { error: `Error al consultar inventario: ${e.message}` }; }"
       },
       "id": "allegra-tool-node-v1",
       "name": "Consultar Inventario ERP",
@@ -1094,6 +1117,11 @@
       "main": [
         [
           {
+            "node": "Get Business Config",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Get Chat Control",
             "type": "main",
             "index": 0
@@ -1102,6 +1130,17 @@
         [
           {
             "node": "Queue Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Business Config": {
+      "main": [
+        [
+          {
+            "node": "Check Business Hours",
             "type": "main",
             "index": 0
           }

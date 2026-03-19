@@ -341,6 +341,68 @@ PDF/imagen → Gemini Embeddings 2.0 API → Qdrant → RAG multimodal
 
 ---
 
-revisar si es posible que TODO (a excepcion del despliegue coolify) cambie por cliente para temas de facturacion.. ejemplo la api key de claude etc..
+### Nota de facturación multi-tenant
+Revisar si es posible que TODO (a excepción del despliegue Coolify) cambie por cliente para temas de facturación: API key de Claude, Firecrawl, embeddings, etc. Cada cliente debería poder tener sus propias credenciales para que el consumo se facture directamente a ellos, no a la agencia.
+
+---
+
+## 🧠 Mejoras de IA avanzadas (Fase 2-3, post-migración FastAPI)
+
+### 1. Crawl4AI como reemplazo de Firecrawl
+- **Problema**: Firecrawl es SaaS de pago y falla con sitios protegidos. La tool web actual solo extrae de 1 URL (homepage), no hace crawl de páginas de producto.
+- **Solución**: [Crawl4AI](https://github.com/unclecode/crawl4ai) — open-source, self-hosted, soporta JavaScript rendering, crawl profundo y extracción con LLM.
+- **Estado**: Servicio agregado al `docker-compose.yml` comentado, listo para descomentar.
+- **Implementación**: Reemplazar Firecrawl API call en la tool `Consultar_Sitio_Web` por llamada a `http://crawl4ai:11235/crawl`. Permite crawl de múltiples páginas de producto, no solo homepage.
+- **Timing**: Fase 2. Para MVP, el RAG con docs subidos manualmente es suficiente.
+
+### 2. Intent classification pre-agente
+- **Qué es**: Un clasificador ligero (regex, modelo pequeño, o LLM con prompt mínimo) que ANTES del AI Agent determina la intención del mensaje: `pregunta_producto`, `saludo`, `queja`, `pedir_humano`, `fuera_de_tema`, `nota_de_voz`.
+- **Por qué**: Hoy el AI Agent recibe todo y decide él mismo qué hacer. Con un clasificador previo, puedes:
+  - Rutear saludos simples a una respuesta estática (sin gastar tokens de Claude)
+  - Detectar notas de voz y mandarlas a transcripción antes del agente
+  - Identificar quejas/frustración y escalar directamente sin pasar por el agente
+  - Filtrar spam o mensajes fuera de tema sin consumir API
+- **Costo sin clasificador**: Cada mensaje consume ~500-2000 tokens de Claude, incluso un "hola" o un "ok"
+- **Implementación**: En n8n sería un Code node con regex + Switch. En FastAPI/LangGraph sería un nodo del grafo con un modelo barato (Haiku) o incluso reglas.
+- **Timing**: Fase 2 (n8n) o Fase 3 (LangGraph).
+
+### 3. Quality gate post-respuesta
+- **Qué es**: Un filtro que revisa la respuesta del agente ANTES de enviarla al cliente. Verifica:
+  - ¿La respuesta contiene precios inventados? (comparar vs RAG source)
+  - ¿Está en el idioma correcto?
+  - ¿Es demasiado larga? (truncar)
+  - ¿Contiene alucinaciones evidentes? (ej: menciona productos que no están en el RAG)
+  - ¿Tiene tono inapropiado?
+- **Por qué**: El agente puede generar respuestas plausibles pero incorrectas. Sin gate, esas respuestas llegan directo al cliente. Con gate, se puede redirigir a un fallback: "No estoy seguro de esa información, ¿te conecto con un asesor?"
+- **Implementación**: En n8n, un Code node post-AI Agent con reglas heurísticas. En FastAPI, un nodo LangGraph con un segundo LLM call (barato) que evalúa la respuesta contra el contexto RAG.
+- **Timing**: Fase 2-3. Para MVP, el fallback actual ("no tengo esa info") es suficiente si el system prompt es bueno.
+
+### 4. Agente de onboarding autónomo
+- **Qué es**: Un flujo separado que automatiza la configuración de un cliente nuevo:
+  1. Recibe URL del sitio web del cliente
+  2. Crawlea el sitio automáticamente (Crawl4AI)
+  3. Extrae productos, precios, FAQs, horarios, políticas
+  4. Genera chunks y los sube a Qdrant con la clave del negocio
+  5. Crea el registro en `chat_control` con config inicial
+  6. Genera un system prompt personalizado basado en el contenido encontrado
+  7. Opcionalmente: genera las 10 preguntas de prueba esperadas
+- **Por qué**: Hoy el onboarding es manual (subir PDFs, configurar en portal, etc.). Con esto, dar de alta un cliente pasa de 2 horas a 10 minutos.
+- **Impacto en el negocio**: Esto es lo que hace que "$1,000 setup" sea rentable — el costo real de onboarding baja a casi cero.
+- **Timing**: Fase 3 (requiere Crawl4AI funcionando + pipeline de ingesta robusto).
+
+### 5. Router inteligente de tools con LangGraph
+- **Qué es**: En vez de que el LLM decida qué tool usar (poco confiable con Haiku), un grafo de estado explícito define las reglas:
+  ```
+  intent=producto → RAG primero → si vacío → Web → si vacío → fallback humano
+  intent=stock    → ERP primero → si error → RAG → fallback
+  intent=humano   → escalación directa
+  intent=saludo   → respuesta estática
+  ```
+- **Por qué**: El LLM es bueno generando lenguaje natural pero malo decidiendo cuándo usar qué tool. Con un router explícito, la lógica de negocio es determinista y testeable, y el LLM solo se encarga de generar la respuesta final.
+- **Diferencia con intent classification**: El intent classifier dice QUÉ quiere el cliente. El router decide CÓMO resolverlo (qué tools, en qué orden, con qué fallbacks).
+- **Implementación**: En n8n sería un Switch gigante (frágil). En LangGraph es exactamente para lo que fue diseñado: grafos de estado con transiciones condicionales.
+- **Timing**: Fase 2-3 (core de la migración a LangGraph).
+
+---
 
 *Este documento se actualizará conforme se resuelvan los puntos.*
