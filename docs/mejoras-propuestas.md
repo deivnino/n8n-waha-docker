@@ -141,6 +141,21 @@
 
 ## Prioridad Alta (Portal)
 
+### Admin panel: gestión de clientes por negocio
+- **Problema**: El portal actual es per-token (cada usuario ve solo su config). El dueño del negocio no puede ver la lista de clientes que le han escrito, ni marcar VIPs, ni ver historial por cliente. Esto es lo que da valor real al producto — configuración cliente a cliente.
+- **Solución**: Nueva vista `/admin?token=BUSINESS_TOKEN` en el portal:
+  - Lista de todos los `chat_control` rows que han interactuado con el negocio (filtrar por `waha_session_id`)
+  - Toggle VIP por cliente (is_vip)
+  - Ver status (AUTO/MANUAL/PAUSED) por cliente
+  - Ver historial de conversación de cada cliente
+  - Métricas por cliente (mensajes, escalaciones)
+- **VIP routing en workflow**: Cuando `is_vip = true`, el flujo debe:
+  - NO marcar como leído (skip Send Seen) → el dueño ve el mensaje pendiente en WhatsApp
+  - NO pasar por AI Agent → va directo a humano
+  - Notificar al dueño (futuro: WhatsApp/Slack alert)
+- **Impacto**: Alto — esto es el panel de control que el dueño del negocio usa día a día. Sin esto, la configuración es por SQL/portal individual.
+- **Requiere**: API route nueva (`/api/admin/[token]`), página Next.js, query a chat_control por session.
+
 ### IP Whitelist por cliente
 - **Problema**: El portal (`/qr`, `/settings`, `/dashboard`, `/upload`) es accesible desde cualquier IP con el token UUID. Un token filtrado compromete el acceso.
 - **Solución propuesta**: Guardar `allowed_ips TEXT[]` en `chat_control`. En el middleware de Next.js (`middleware.ts`), verificar que `req.ip` esté en la lista antes de servir cualquier ruta del portal. Fallback: rate limiting por token (max 100 req/hora).
