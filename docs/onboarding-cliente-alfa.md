@@ -276,7 +276,7 @@ Alternativa: Crawl4AI (gratuito, en roadmap) — ver `docs/mejoras-propuestas.md
 4. Agregar campo `speaker` al payload en Qdrant
 5. En n8n, usar filtro `must` en el nodo RAG para priorizar `speaker: "business"`
 
-**Workaround actual**: System prompt del AI Agent instruye al LLM a priorizar respuestas del negocio (3124376800) en el contexto RAG.
+**Workaround actual**: System prompt del AI Agent usa `config.phone_number` (de `Get Business Config`) para instruir al LLM a priorizar respuestas del negocio en el contexto RAG. No está hardcodeado — funciona para cualquier cliente.
 
 ---
 
