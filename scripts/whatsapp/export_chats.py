@@ -23,6 +23,7 @@ import json
 import argparse
 from datetime import datetime
 from pathlib import Path
+import os
 import sys
 import time
 
@@ -30,23 +31,24 @@ import time
 class WAHAChatExporter:
     """Exportador de chats desde WAHA API"""
     
-    def __init__(self, waha_url="http://localhost:3000", session="default"):
+    def __init__(self, waha_url="http://localhost:3000", session="default", api_key=None):
         self.waha_url = waha_url.rstrip('/')
         self.session = session
+        self.api_key = api_key
         self.export_dir = Path(__file__).parent.parent.parent / "data" / "whatsapp_exports"
         self.export_dir.mkdir(parents=True, exist_ok=True)
         
     def _make_request(self, endpoint, params=None):
         """Wrapper para requests con manejo de errores"""
         try:
-            url = f"{self.waha_url}/api/{endpoint}"
+            url = f"{self.waha_url}/api/{self.session}/{endpoint}"
             headers = {"accept": "application/json"}
-            
-            # Agregar session a params si es necesario
+            if self.api_key:
+                headers["X-Api-Key"] = self.api_key
+
             if params is None:
                 params = {}
-            params['session'] = self.session
-            
+
             response = requests.get(url, params=params, headers=headers, timeout=30)
             response.raise_for_status()
             return response.json()
@@ -88,11 +90,10 @@ class WAHAChatExporter:
         """Obtiene mensajes de un chat específico"""
         try:
             params = {
-                'chatId': chat_id,
                 'limit': limit,
-                'downloadMedia': False  # No descargar multimedia por ahora
+                'downloadMedia': 'false'  # No descargar multimedia por ahora
             }
-            messages = self._make_request(f"messages", params)
+            messages = self._make_request(f"chats/{chat_id}/messages", params)
             return messages if messages else []
         except Exception as e:
             print(f"   ⚠️  Error obteniendo mensajes: {e}")
@@ -142,7 +143,12 @@ class WAHAChatExporter:
     
     def export_chat(self, chat):
         """Exporta un chat individual a archivo .txt"""
-        chat_id = chat.get('id')
+        raw_id = chat.get('id')
+        # WAHA devuelve id como objeto {server, user, _serialized} — usar _serialized
+        if isinstance(raw_id, dict):
+            chat_id = raw_id.get('_serialized', str(raw_id))
+        else:
+            chat_id = str(raw_id)
         chat_name = chat.get('name', chat_id)
         
         # Sanitizar nombre para filesystem
@@ -208,7 +214,10 @@ class WAHAChatExporter:
         
         # Filtrar por chat_id si se especificó
         if chat_id_filter:
-            chats = [c for c in chats if chat_id_filter in c.get('id', '')]
+            def _get_chat_id_str(c):
+                raw = c.get('id', '')
+                return raw.get('_serialized', str(raw)) if isinstance(raw, dict) else str(raw)
+            chats = [c for c in chats if chat_id_filter in _get_chat_id_str(c)]
             if not chats:
                 print(f"❌ No se encontró chat con ID que contenga: {chat_id_filter}")
                 return
@@ -265,11 +274,16 @@ def main():
         type=int,
         help='Limitar número de chats a exportar'
     )
+    parser.add_argument(
+        '--api-key',
+        default=os.environ.get('WAHA_API_KEY'),
+        help='WAHA API key (default: env WAHA_API_KEY)'
+    )
     
     args = parser.parse_args()
     
     # Crear exporter y ejecutar
-    exporter = WAHAChatExporter(waha_url=args.waha_url, session=args.session)
+    exporter = WAHAChatExporter(waha_url=args.waha_url, session=args.session, api_key=args.api_key)
     exporter.export_all(limit=args.limit, chat_id_filter=args.chat_id)
 
 

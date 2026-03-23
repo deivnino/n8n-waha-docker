@@ -16,11 +16,9 @@ from qdrant_client import QdrantClient, models
 
 
 DEFAULT_PDF_NAME = "Dualidad Curiosa_ Detective y Biólogo_ -1.pdf"
-COLLECTION_NAME = "pdf_local_collection_dav"
-#EMBEDDING_MODEL = "nomic-embed-text:latest"
-EMBEDDING_MODEL = "nomic-embed-gpu"
+DEFAULT_COLLECTION = "knowledge_base"
+DEFAULT_OLLAMA_MODEL = "nomic-embed-text"
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".html", ".htm", ".docx"}
-# EMBEDDING_MODEL = "nomic-embed-text"  # Úsalo solo si indexaste y consultas siempre con esta variante exacta.
 
 
 def parse_args() -> argparse.Namespace:
@@ -70,6 +68,32 @@ def parse_args() -> argparse.Namespace:
         "--skip-existing-check",
         action="store_true",
         help="Omite retrieve de IDs existentes (útil para cargas iniciales masivas).",
+    )
+    parser.add_argument(
+        "--collection",
+        default=DEFAULT_COLLECTION,
+        help=f"Nombre de la colección en Qdrant. Default: {DEFAULT_COLLECTION}",
+    )
+    parser.add_argument(
+        "--embedding-provider",
+        choices=["ollama", "google"],
+        default="ollama",
+        help="Proveedor de embeddings: ollama (local) o google (API). Default: ollama",
+    )
+    parser.add_argument(
+        "--embedding-model",
+        default=None,
+        help="Modelo de embeddings. Default: nomic-embed-text (ollama) o text-embedding-004 (google)",
+    )
+    parser.add_argument(
+        "--ollama-url",
+        default="http://localhost:11434",
+        help="URL de Ollama. Default: http://localhost:11434",
+    )
+    parser.add_argument(
+        "--qdrant-url",
+        default="http://localhost:6333",
+        help="URL de Qdrant. Default: http://localhost:6333",
     )
     return parser.parse_args()
 
@@ -170,15 +194,23 @@ def embed_documents_batched(
         vectors.extend(vectors_by_batch_index[idx])
     return vectors
 
-# 1. Configurar Embeddings locales con Ollama
-embeddings = OllamaEmbeddings(
-    model=EMBEDDING_MODEL,
-
-    base_url="http://localhost:11434" # URL por defecto de Ollama
-)
-
-# 2. Cargar y procesar el PDF
+# 1. Configurar Embeddings
 args = parse_args()
+
+if args.embedding_provider == "google":
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    embed_model = args.embedding_model or "models/text-embedding-004"
+    embeddings = GoogleGenerativeAIEmbeddings(model=embed_model)
+    print(f"Embeddings: Google ({embed_model})")
+else:
+    embed_model = args.embedding_model or DEFAULT_OLLAMA_MODEL
+    embeddings = OllamaEmbeddings(model=embed_model, base_url=args.ollama_url)
+    print(f"Embeddings: Ollama ({embed_model} @ {args.ollama_url})")
+
+COLLECTION_NAME = args.collection
+print(f"Colección Qdrant: {COLLECTION_NAME}")
+
+# 2. Cargar y procesar el documento
 source_path = resolve_source_path(args.source)
 loader = get_loader(source_path)
 pages = loader.load()
@@ -206,7 +238,7 @@ chunk_ids = [
     for doc in chunks
 ]
 
-client = QdrantClient(url="http://localhost:6333")
+client = QdrantClient(url=args.qdrant_url)
 existing_collections = {collection.name for collection in client.get_collections().collections}
 
 if COLLECTION_NAME not in existing_collections:
