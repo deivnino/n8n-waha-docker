@@ -29,6 +29,13 @@ venv/
 ENV/
 .venv
 
+# Personal / exported data (NO versionar)
+gemini_exported/
+scripts/utils/gemini_exported/
+.history/
+.continue/
+workspace-source-bundle.md
+
 # OS
 .DS_Store
 Thumbs.db
