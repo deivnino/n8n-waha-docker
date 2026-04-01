@@ -51,7 +51,7 @@ if [ -z "$WEBSITE" ]; then
 fi
 
 # --- Generar auth token ---
-AUTH_TOKEN=$(python -c "import uuid; print(uuid.uuid4())" 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "$(date +%s)-$(shuf -i 1000-9999 -n 1)")
+AUTH_TOKEN=$(python -c "import uuid; print(uuid.uuid4())" 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || powershell.exe -Command "[guid]::NewGuid().ToString()" 2>/dev/null || echo "$(date +%s)-$(shuf -i 1000-9999 -n 1)")
 
 echo ""
 echo "=== Registrando cliente ==="

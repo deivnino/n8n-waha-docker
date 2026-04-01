@@ -13,7 +13,7 @@ BACKUP_DIR="./backup"
 mkdir -p "$BACKUP_DIR"
 
 echo "[1/1] Exportando volumen n8n_data..."
-docker run --rm \
+MSYS_NO_PATHCONV=1 docker run --rm \
   -v n8n_data:/data \
   -v "$(cd "$BACKUP_DIR" && pwd)":/backup \
   alpine tar czf /backup/n8n_data.tar.gz -C /data .
