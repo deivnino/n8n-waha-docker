@@ -113,16 +113,27 @@ n8n-waha-docker/
 
 ---
 
-## 🚪 Fix Crítico Ya Aplicado (NO revertir)
+## 🚪 Fixes Críticos Ya Aplicados (NO revertir)
 
 **WAHA Session Persistence**: El volumen Docker debe montarse en `/app/.sessions` (con punto),
 NO en `/app/sessions`. Sin este fix, WAHA pierde la sesión en cada restart.
+
+**WAHA Bind Mount (portabilidad)**: WAHA usa bind mount `./data/waha` en lugar de named volume.
+Esto permite copiar la sesión como carpeta normal al migrar a otra máquina o a Coolify en producción.
 
 ```yaml
 # docker-compose.yml — correcto:
 volumes:
   - ./data/waha:/app/.sessions
 ```
+
+### Migrar sesión WAHA a otra máquina
+1. Copiar la carpeta `./data/waha/` al mismo path en la máquina destino **antes** de levantar el stack
+2. `docker compose up -d` — WAHA arranca con la sesión ya autenticada, sin re-escanear QR
+3. Si NO se copió `./data/waha/`: levantar igual → dashboard WAHA (`localhost:3000`) → Sessions → Start → escanear QR manualmente
+
+> **Nota para producción con Coolify**: considerar convertir también `n8n_storage` a bind mount
+> (`./data/n8n`) para la misma portabilidad en backups y migraciones.
 
 ---
 

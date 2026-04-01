@@ -35,7 +35,7 @@ services:
       - WHATSAPP_API_PORT=3000
       - DEBUG=true
     volumes:
-      - waha_storage:/app/.sessions
+      - ./data/waha:/app/.sessions
     networks:
       - n8n-network
     depends_on:
@@ -221,7 +221,6 @@ volumes:
   n8n_storage:
     external: true
     name: n8n_data
-  waha_storage:
   computer_use_data:
   postgres_data:
   qdrant_data:
