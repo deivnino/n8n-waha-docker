@@ -62,7 +62,7 @@
         "promptType": "define",
         "text": "={{ $('WAHA Trigger').item.json.payload.body }}",
         "options": {
-          "systemMessage": "={{ (() => {\nconst config = $('Get Business Config').item.json;\nconst name = config.business_name || 'nuestro negocio';\nconst web = config.website_url || '';\nreturn `Eres el asistente virtual de ${name}. Representas al negocio directamente — habla como parte del equipo, no como un bot externo.\n\nTIENES 4 HERRAMIENTAS DISPONIBLES. USALAS ACTIVAMENTE:\n1. **Buscar_en_Base_de_Conocimiento** — SIEMPRE usala PRIMERO para cualquier pregunta sobre productos, precios, servicios, horarios o el negocio.\n2. **Consultar_Sitio_Web** — Si la base de conocimiento no tiene la respuesta${web ? ', busca en ' + web : ''}. Usa esta herramienta para consultas sobre productos o disponibilidad.\n3. **Consultar_Inventario_ERP** — Para verificar stock o precios exactos en tiempo real (solo si el cliente tiene ERP configurado).\n4. **Escalar_a_Humano** — SOLO si el cliente pide hablar con una persona real o esta muy frustrado.\n\nREGLAS:\n1. BUSCA en tus herramientas ANTES de responder. No respondas de memoria.\n2. Si ninguna herramienta devuelve informacion relevante, di: \"No tengo esa informacion a mano, quieres que te conecte con un asesor?\"\n3. NUNCA inventes precios, disponibilidad ni datos del negocio.\n4. Responde en el mismo idioma del cliente.\n5. Se conciso y directo. Maximo 2-3 parrafos cortos.\n6. Usa maximo 2 emojis por mensaje.\n7. Si el cliente pide un humano o esta frustrado, usa la herramienta Escalar_a_Humano inmediatamente.\n\nPRIORIZACION DE CONTEXTO:\nCuando el contexto RAG incluya conversaciones de WhatsApp, prioriza las respuestas del negocio (numero ${config.phone_number || 'del negocio'}) como fuente autoritativa.\nLos mensajes de clientes son contexto util, pero las respuestas del negocio son la voz oficial — usa ese tono y esa informacion como referencia principal.\n\nTONO: Calido, profesional y eficiente. Como un vendedor experto que conoce su catalogo.`;\n})() }}"
+          "systemMessage": "={{ (() => {\nconst config = $('Get Business Config').item.json;\nconst name = config.business_name || 'nuestro negocio';\nconst web = config.website_url || '';\nreturn `Eres el asistente virtual de ${name}. Representas al negocio directamente — habla como parte del equipo, no como un bot externo.\n\nTIENES 4 HERRAMIENTAS DISPONIBLES. USALAS ACTIVAMENTE:\n1. **Buscar_en_Base_de_Conocimiento** — SIEMPRE usala PRIMERO para cualquier pregunta sobre productos, precios, servicios, horarios o el negocio.\n2. **Consultar_Sitio_Web** — Si la base de conocimiento no tiene la respuesta o necesitas verificar precios/disponibilidad actualizados${web ? ', busca en ' + web : ''}. Tambien usala cuando el RAG no tenga info suficiente sobre un producto.\n3. **Consultar_Inventario_ERP** — Para verificar stock o precios exactos en tiempo real (solo si el cliente tiene ERP configurado).\n4. **Escalar_a_Humano** — SOLO si el cliente pide hablar con una persona real o esta muy frustrado.\n\nREGLAS:\n1. BUSCA en tus herramientas ANTES de responder. No respondas de memoria.\n2. Para precios y disponibilidad: si el RAG no tiene info clara, usa Consultar_Sitio_Web o Consultar_Inventario_ERP antes de decir que no sabes.\n3. Si ninguna herramienta devuelve informacion relevante, di: \"No tengo esa informacion a mano, quieres que te conecte con un asesor?\"\n4. NUNCA inventes precios, disponibilidad ni datos del negocio.\n5. Responde en el mismo idioma del cliente.\n6. Se conciso y directo. Maximo 2-3 parrafos cortos.\n7. Usa maximo 2 emojis por mensaje.\n8. Si el cliente pide un humano o esta frustrado, usa la herramienta Escalar_a_Humano inmediatamente.\n9. Cuando escales a humano, dile al cliente que un asesor le respondera POR ESTE MISMO CHAT DE WHATSAPP en breve. No menciones otros canales.\n\nPRIORIZACION DE CONTEXTO:\nCuando el contexto RAG incluya conversaciones de WhatsApp, prioriza las respuestas del negocio (numero ${config.phone_number || 'del negocio'}) como fuente autoritativa.\nLos mensajes de clientes son contexto util, pero las respuestas del negocio son la voz oficial — usa ese tono y esa informacion como referencia principal.\n\nTONO: Calido, profesional y eficiente. Como un vendedor experto que conoce su catalogo.`;\n})() }}"
         }
       },
       "id": "e3f6458b-2816-4788-8c24-a2f503c18547",
@@ -81,11 +81,13 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "claude-3-haiku-20240307",
+          "value": "claude-haiku-4-5-20251001",
           "mode": "list",
-          "cachedResultName": "Claude Haiku 3"
+          "cachedResultName": "Claude Haiku 4.5"
         },
-        "options": {}
+        "options": {
+          "temperature": 0
+        }
       },
       "id": "c21f2e9b-938b-493b-8f36-b0a18682e0bd",
       "name": "Anthropic Chat Model",
@@ -133,9 +135,7 @@
           "value": "knowledge_base",
           "mode": "name"
         },
-        "options": {
-          "searchFilterJson": "={{ JSON.stringify({\"must\": [{\"key\": \"phone_number\", \"match\": {\"value\": $(\"Get Business Config\").item.json.phone_number}}]}) }}"
-        }
+        "options": {}
       },
       "id": "eb50f1f6-1fdf-4d34-959c-84ecae7845e9",
       "name": "Buscar en Base de Conocimiento",
@@ -291,7 +291,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET phone_number = EXCLUDED.phone_number RETURNING phone_number, status, is_vip, daily_counter, last_human_interaction",
+        "query": "INSERT INTO chat_control (phone_number, status) VALUES ($1, 'AUTO') ON CONFLICT (phone_number) DO UPDATE SET status = CASE WHEN chat_control.is_vip = true THEN 'MANUAL' WHEN chat_control.status = 'MANUAL' AND chat_control.is_vip = false AND chat_control.last_human_interaction < NOW() - interval '4 hours' THEN 'AUTO' ELSE chat_control.status END RETURNING phone_number, status, is_vip, daily_counter, last_human_interaction",
         "options": {
           "queryReplacement": "={{ [$('WAHA Trigger').item.json.payload.from] }}"
         }
@@ -660,8 +660,8 @@
     {
       "parameters": {
         "name": "Consultar_Sitio_Web",
-        "description": "Busca información específica en el sitio web del negocio usando extracción con IA (Firecrawl). Úsala cuando el usuario pregunte por productos, precios, disponibilidad o servicios y la base de conocimiento no tenga la respuesta. Pasa como input la consulta exacta del usuario.",
-        "jsCode": "const config = $('Get Business Config').item.json;\nconst websiteUrl = config.website_url;\nif (!websiteUrl) return { error: 'No hay sitio web configurado para este negocio' };\nconst apiKey = $env.FIRECRAWL_API_KEY;\nif (!apiKey) return { error: 'Firecrawl no configurado — contacta al administrador' };\nconst userQuery = $input.first().json.query || $input.first().json.input || 'información general';\ntry {\n  const resp = await fetch('https://api.firecrawl.dev/v1/extract', {\n    method: 'POST',\n    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },\n    body: JSON.stringify({\n      urls: [websiteUrl],\n      prompt: `Extrae información relevante sobre: ${userQuery}. Incluye nombres de productos, precios, disponibilidad en stock y referencias o SKU si aplica.`,\n      schema: {\n        type: 'object',\n        properties: {\n          resultados: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, precio: { type: 'string' }, disponibilidad: { type: 'string' }, referencia: { type: 'string' } } } },\n          resumen: { type: 'string' }\n        }\n      }\n    }),\n    signal: AbortSignal.timeout(15000)\n  });\n  const data = await resp.json();\n  if (!data.success) return { error: 'Firecrawl error: ' + (data.error || JSON.stringify(data)) };\n  return data.data || { resumen: 'Sin resultados' };\n} catch(e) { return { error: `Error al consultar el sitio: ${e.message}` }; }"
+        "description": "Busca información en el sitio web del negocio en TIEMPO REAL. Úsala cuando el usuario pregunte por productos, precios, disponibilidad o servicios y la base de conocimiento no tenga la respuesta o pueda estar desactualizada. Pasa como input el nombre del producto o la consulta exacta del usuario.",
+        "jsCode": "const config = $('Get Business Config').item.json;\nconst websiteUrl = config.website_url;\nif (!websiteUrl) return 'No hay sitio web configurado para este negocio';\nconst userQuery = query;\nconst crawl4aiUrl = 'http://crawl4ai:11235';\n\nconst searchUrl = `${websiteUrl.replace(/\\/$/, '')}/search?q=${encodeURIComponent(userQuery)}`;\n\ntry {\n  const searchData = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${crawl4aiUrl}/md`,\n    headers: { 'Content-Type': 'application/json' },\n    body: { url: searchUrl, f: 'fit', q: userQuery, c: '0' },\n    timeout: 20000\n  });\n  \n  if (searchData.markdown && searchData.markdown.length > 100) {\n    return `Fuente: ${searchUrl}\\n\\n${searchData.markdown.substring(0, 3000)}`;\n  }\n  \n  const mainData = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${crawl4aiUrl}/md`,\n    headers: { 'Content-Type': 'application/json' },\n    body: { url: websiteUrl, f: 'fit', q: userQuery, c: '0' },\n    timeout: 20000\n  });\n  \n  if (mainData.markdown) {\n    return `Fuente: ${websiteUrl}\\n\\n${mainData.markdown.substring(0, 3000)}`;\n  }\n  \n  return 'No se pudo extraer contenido del sitio web';\n} catch(e) { return `Error al consultar el sitio: ${e.message}`; }"
       },
       "id": "web-tool-node-v1",
       "name": "Consultar Sitio Web",
@@ -676,7 +676,7 @@
       "parameters": {
         "name": "Consultar_Inventario_ERP",
         "description": "Consulta el inventario en tiempo real del ERP del negocio (Allegra u otro sistema). Úsala cuando el usuario pregunte por disponibilidad de stock, precios exactos o referencias de productos específicos. Solo funciona si el cliente tiene configurada la integración de inventario.",
-        "jsCode": "const config = $('Get Business Config').item.json;\nconst allegraUrl = config.allegra_url;\nconst allegraKey = config.allegra_api_key;\nif (!allegraUrl || !allegraKey) return { error: 'Inventario ERP no configurado para este negocio' };\nconst userQuery = $input.first().json.query || $input.first().json.input || '';\ntry {\n  const resp = await fetch(`${allegraUrl}/items?search=${encodeURIComponent(userQuery)}&limit=10`, {\n    headers: { 'Authorization': `Bearer ${allegraKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },\n    signal: AbortSignal.timeout(8000)\n  });\n  if (!resp.ok) return { error: `ERP respondió con error ${resp.status}` };\n  const data = await resp.json();\n  return data;\n} catch(e) { return { error: `Error al consultar inventario: ${e.message}` }; }"
+        "jsCode": "const config = $('Get Business Config').item.json;\nconst allegraUrl = config.allegra_url;\nconst allegraKey = config.allegra_api_key;\nif (!allegraUrl || !allegraKey) return 'Inventario ERP no configurado para este negocio';\nconst userQuery = query;\ntry {\n  const data = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `${allegraUrl}/items?search=${encodeURIComponent(userQuery)}&limit=10`,\n    headers: { 'Authorization': `Bearer ${allegraKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },\n    timeout: 8000\n  });\n  return typeof data === 'string' ? data : JSON.stringify(data);\n} catch(e) { return `Error al consultar inventario: ${e.message}`; }"
       },
       "id": "allegra-tool-node-v1",
       "name": "Consultar Inventario ERP",
