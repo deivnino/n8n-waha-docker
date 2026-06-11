@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ClientSettings, DAYS } from "@/lib/types";
 import NavBar from "@/components/NavBar";
+import ContactsManager from "./ContactsManager";
 
 interface Props {
   token: string;
@@ -129,19 +130,8 @@ export default function SettingsForm({ token, initialSettings }: Props) {
           </CardContent>
         </Card>
 
-        {/* VIP */}
-        <Card className="bg-slate-900 border-slate-800">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-slate-200 text-sm font-medium">⭐ Cliente VIP</p>
-              <p className="text-slate-500 text-xs mt-0.5">Solo atienden asesores humanos, sin límite de mensajes</p>
-            </div>
-            <Switch
-              checked={settings.is_vip ?? false}
-              onCheckedChange={(v) => setSettings((p) => ({ ...p, is_vip: v }))}
-            />
-          </CardContent>
-        </Card>
+        {/* Contactos VIP + Escalados */}
+        <ContactsManager token={token} />
 
         {/* Horario de atención */}
         <Card className="bg-slate-900 border-slate-800">
