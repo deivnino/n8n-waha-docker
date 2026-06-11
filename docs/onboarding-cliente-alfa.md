@@ -214,18 +214,54 @@ Debe mostrar `points_count` > 0 y el contenido de tus documentos en el payload.
 
 ---
 
-## Paso 6: Scraping web con Firecrawl (opcional)
+## Paso 6: Sitio web del negocio (Crawl4AI)
 
-Si la tienda tiene sitio web o redes sociales con info de productos:
+### Búsqueda en vivo (ya implementado en DEV)
 
+La tool `Consultar_Sitio_Web` del AI Agent usa **Crawl4AI** (local, Docker) para buscar en el sitio web del negocio **en tiempo real**:
+
+1. Cliente pregunta "¿tienen LM35?"
+2. Agente busca en RAG → no encuentra o dato viejo
+3. Agente usa `Consultar_Sitio_Web` → Crawl4AI entra a `{website_url}/search?q=lm35`
+4. Si la búsqueda no da resultados, hace fallback a la página principal con filtro por query
+5. Devuelve el markdown al agente → responde con info fresca
+
+**Requisito**: `website_url` configurado en `chat_control` para el negocio.
+Para zamux: `https://www.zamux.co`
+
+**Iniciar Crawl4AI** (ya está en docker-compose):
+```powershell
+docker-compose up -d crawl4ai
+# Verificar: curl http://localhost:11235/health
 ```
-# Desde Claude Code, usar Firecrawl MCP para:
-1. Scrape de la página de productos
-2. Scrape de la página de contacto / sobre nosotros
-3. Guardar output como .txt → vectorizar con Paso 4
+
+### Scrape offline para vectorizar (complementario)
+
+Para datos estáticos (políticas, about, contacto), scraping puntual guardado como .txt:
+
+```powershell
+# Scrape una página y guardar como .txt para vectorizar
+curl -X POST http://localhost:11235/md -H "Content-Type: application/json" `
+  -d '{\"url\": \"https://www.zamux.co/pages/about\", \"f\": \"fit\"}' | python -c "import sys,json; print(json.load(sys.stdin)['markdown'])" > "../../gemini_exported/zamux-about.txt"
+
+# Luego vectorizar normalmente (Paso 4)
+cd scripts/utils
+python vectorize.py "../../gemini_exported/zamux-about.txt" --chunk-size 500
 ```
 
-Alternativa: Crawl4AI (gratuito, en roadmap) — ver `docs/mejoras-propuestas.md`.
+### Estrategia híbrida recomendada
+
+| Tipo de dato | Método | Por qué |
+|---|---|---|
+| Precios / stock / productos | Búsqueda live (Crawl4AI) | Cambian frecuentemente |
+| Horarios, ubicación, políticas | Scrape + vectorizar | Estables, más rápido |
+| FAQ del negocio | Manual + vectorizar | Máximo control |
+| Chats WhatsApp | Exportar + vectorizar | Contexto conversacional |
+
+### Mejoras futuras
+- **URL de búsqueda configurable por cliente** — campo `search_url_pattern` en `chat_control` (ej: `{website}/search?q={query}`, `{website}/productos?buscar={query}`)
+- **Deep crawl**: si la búsqueda devuelve links de productos, hacer un segundo crawl al primer resultado para obtener detalle completo (simular click)
+- **Scrape programado**: script `scripts/utils/scrape_web.py` similar a `vectorize.py` para bajar y vectorizar todo el sitio periódicamente
 
 ---
 

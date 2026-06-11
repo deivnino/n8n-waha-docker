@@ -135,6 +135,27 @@ volumes:
 > **Nota para producción con Coolify**: considerar convertir también `n8n_storage` a bind mount
 > (`./data/n8n`) para la misma portabilidad en backups y migraciones.
 
+**`fetch` no existe en toolCode de n8n**: Los nodos `@n8n/n8n-nodes-langchain.toolCode` corren
+en un sandbox de VM2 que NO expone `fetch()`. Usar `this.helpers.httpRequest()` en su lugar.
+
+```javascript
+// ❌ INCORRECTO — crash "fetch is not defined"
+const resp = await fetch(url, { headers: {...} });
+
+// ✅ CORRECTO — funciona en toolCode sandbox
+const data = await this.helpers.httpRequest({
+  method: 'POST',
+  url: url,
+  headers: { 'Content-Type': 'application/json' },
+  body: { key: 'value' },
+  timeout: 20000
+});
+```
+
+**toolCode input**: La query del agente llega como variable global `query`, NO como `$input.first().json.query`.
+
+**toolCode output**: Debe retornar `string`, NO objetos. Si tienes un objeto, usa `JSON.stringify(data)`.
+
 ---
 
 ## 📱 Portal de Re-autenticación QR (Diseñado, Pendiente Construir)
@@ -234,9 +255,23 @@ HISTORIAL: {{ $json.chat_history }}
 
 ## 📥 Onboarding RAG de Cliente Nuevo
 1. Cliente exporta historial de WhatsApp (`.txt` nativo de WhatsApp)
-2. Code node en n8n parsea el `.txt`
-3. Chunks cargados a Qdrant (colección `{client_id}_knowledge`)
-4. Opcional: Firecrawl para scraping del sitio web del cliente
+2. `scripts/whatsapp/export_chats.py` parsea el `.txt`
+3. `scripts/utils/vectorize.py` carga chunks a Qdrant con `--phone-number`
+4. Opcional: Crawl4AI para scraping del sitio web del cliente
+
+### Filtrado multi-tenant en RAG (IMPORTANTE)
+- El nodo "Buscar en Base de Conocimiento" usa `searchFilterJson` para filtrar por `phone_number`
+- Para que funcione, los puntos en Qdrant **deben** tener `phone_number` en el payload
+- `vectorize.py --phone-number 573168294407@c.us archivo.txt` agrega ese campo
+- **Estado actual**: El filtro está DESHABILITADO en el workflow DEV porque los datos existentes no tienen `phone_number`. Después de re-indexar con `--phone-number`, re-habilitar el filtro:
+  ```json
+  "searchFilterJson": "={{ JSON.stringify({\"must\": [{\"key\": \"phone_number\", \"match\": {\"value\": $(\"Get Business Config\").item.json.phone_number}}]}) }}"
+  ```
+
+### Custom Code Tools — variable de input
+- Los tools `toolCode` en n8n reciben el input del agente via la variable built-in `query`, **NO** via `$input.first().json`
+- Ejemplo correcto: `const userQuery = query;`
+- Ejemplo incorrecto: `const userQuery = $input.first().json.query;`
 
 ---
 
