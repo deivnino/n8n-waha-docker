@@ -22,7 +22,9 @@ PHONE=""
 BIZ_NAME=""
 SESSION="default"
 WEBSITE=""
-HOURS='{"tz":"America/Bogota","schedule":{"1":["08:00","19:00"],"2":["08:00","19:00"],"3":["08:00","19:00"],"4":["08:00","19:00"],"5":["08:00","19:00"],"6":["09:00","14:00"]}}'
+# Formato esperado por el nodo "Check Business Hours" y el portal /settings:
+# schedule con nombre de dia -> {enabled, open, close}
+HOURS='{"tz":"America/Bogota","schedule":{"monday":{"enabled":true,"open":"08:00","close":"19:00"},"tuesday":{"enabled":true,"open":"08:00","close":"19:00"},"wednesday":{"enabled":true,"open":"08:00","close":"19:00"},"thursday":{"enabled":true,"open":"08:00","close":"19:00"},"friday":{"enabled":true,"open":"08:00","close":"19:00"},"saturday":{"enabled":true,"open":"09:00","close":"14:00"},"sunday":{"enabled":false,"open":"09:00","close":"14:00"}},"outside_message":"Estamos fuera de horario. Te responderemos pronto."}'
 
 while [[ $# -gt 0 ]]; do
     case $1 in
