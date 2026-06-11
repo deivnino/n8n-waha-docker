@@ -18,7 +18,7 @@ from qdrant_client import QdrantClient, models
 DEFAULT_PDF_NAME = "Dualidad Curiosa_ Detective y Biólogo_ -1.pdf"
 DEFAULT_COLLECTION = "knowledge_base"
 DEFAULT_OLLAMA_MODEL = "nomic-embed-text"
-SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".html", ".htm", ".docx"}
+SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md", ".html", ".htm", ".docx"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -95,6 +95,11 @@ def parse_args() -> argparse.Namespace:
         default="http://localhost:6333",
         help="URL de Qdrant. Default: http://localhost:6333",
     )
+    parser.add_argument(
+        "--phone-number",
+        default=None,
+        help="phone_number del cliente (ej: 573168294407@c.us). Se agrega al payload para filtrado multi-tenant en n8n.",
+    )
     return parser.parse_args()
 
 
@@ -135,7 +140,7 @@ def get_loader(file_path: Path):
 
     if suffix == ".pdf":
         return PyPDFLoader(str(file_path))
-    if suffix == ".txt":
+    if suffix in {".txt", ".md"}:
         return TextLoader(str(file_path), encoding="utf-8")
     if suffix in {".html", ".htm"}:
         return BSHTMLLoader(str(file_path), open_encoding="utf-8")
@@ -231,6 +236,8 @@ for chunk_index, doc in enumerate(chunks):
     doc.metadata["chunk_index"] = chunk_index
     doc.metadata["page"] = doc.metadata.get("page", -1)
     doc.metadata["content_hash"] = build_content_hash(doc.page_content)
+    if args.phone_number:
+        doc.metadata["phone_number"] = args.phone_number
 
 # 3. Almacenar en Qdrant (solo nuevos)
 chunk_ids = [
