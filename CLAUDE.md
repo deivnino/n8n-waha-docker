@@ -87,10 +87,15 @@ n8n-waha-docker/
 
 ---
 
-## 🔄 Workflow de Producción: `waha_v6`
+## 🔄 Workflow de Producción
 
-**Archivo**: `workflows/waha-chatting-prod.json`
-**ID en n8n**: `_jCo7E4j09FGztAPboL2J`
+**Archivo**: `workflows/waha-ia-dev.json` (48 nodos — ESTE es el workflow real y activo)
+**ID en n8n**: `nSsRhEbujpKWX6ZmGaDpc` (nombre: "waha")
+
+> ⚠️ Corrección 2026-06-10: `_jCo7E4j09FGztAPboL2J` es un placeholder vacío (1 nodo noOp).
+> `workflows/waha-chatting-prod.json` (`xXQ0R_KRA2teh7aVZe-kQ`) es el template viejo.
+> El webhook del WAHA Trigger es `/webhook/71251449-2644-4325-8ba7-2a1550a81fb4/waha`
+> (incluye el webhookId del nodo — `WHATSAPP_HOOK_URL` en docker-compose ya apunta ahí).
 
 ### Flujo de nodos (en orden)
 1. **WAHA Webhook** → recibe mensaje entrante
@@ -408,22 +413,23 @@ Referencia: https://youtu.be/d7hNUFrbJxo (Canal Alvin / AstraVenture)
 
 ---
 
-## 📌 Estado Actual (2026-03-17)
+## 📌 Estado Actual (2026-06-10 — migración a máquina nueva completada)
 
 | Componente                  | Estado                                   |
 |-----------------------------|------------------------------------------|
-| Stack Docker local          | ✅ Funcionando                           |
-| WAHA session persistence    | ✅ Fix aplicado (`/app/.sessions`)       |
-| Workflow waha_v6            | ✅ Diseñado, pendiente deploy final      |
-| SQL migrations v6           | ✅ Ejecutadas (2026-03-16)              |
-| Portal QR re-auth           | ✅ Funcionando (`/qr?token=UUID`)        |
-| Portal cliente externo      | 🔨 En construcción (`portal/` Next.js)  |
-| Portal /settings            | 📋 Próxima sesión                        |
-| Portal /dashboard           | 📋 Próxima sesión                        |
+| Stack Docker local          | ✅ 6 contenedores: n8n, WAHA, Postgres, Qdrant, Crawl4AI, Ollama |
+| Volumen n8n restaurado      | ✅ Workflows + credenciales desde backup (2026-06-10) |
+| Workflow activo             | ✅ `nSsRhEbujpKWX6ZmGaDpc` probado end-to-end (agente responde con RAG + web live) |
+| WAHA webhook → n8n          | ✅ Corregido (URL con webhookId), entrega 200 |
+| Bug horarios onboarding     | ✅ Corregido (schema day-name/objetos en onboard-client.sh) |
+| RAG vectorizado             | ✅ 297 puntos en `knowledge_base` con `phone_number` (multi-tenant ready) |
+| Sesión WhatsApp             | ⚠️ PENDIENTE escanear QR (no se migró `data/waha/`) |
+| Cola `message_queue`        | ⚠️ Solo INSERT — nadie la procesa (mensajes en lock se pierden) |
+| Filtro multi-tenant RAG     | 📋 Deshabilitado — re-habilitar al onboardear cliente 2 |
+| Portal cliente externo      | 🔨 `portal/` Next.js — sin Node en esta máquina, dockerizar pendiente |
 | Inventario MCP Router       | 📋 Diseñado, pendiente construir         |
-| Beta client activo          | ✅ Tienda electrónica, Bogotá            |
+| Beta client activo          | ✅ Mercawow (zamux.co), Bogotá           |
 | Primer cliente de pago      | 🎯 Objetivo post-validación beta         |
-| Git workflow (push/pull)    | ✅ Botones en waha-chatting-prod y waha-ia-dev |
 | Deployment (Coolify)        | 📋 Diseñado, pendiente construir         |
 
 ---
