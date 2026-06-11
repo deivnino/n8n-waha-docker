@@ -44,6 +44,7 @@
       },
       "id": "e4438b45-d7e9-4d9e-b95c-6a4fa9373529",
       "name": "Send Seen",
+      "onError": "continueRegularOutput",
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202409,
       "position": [
@@ -181,6 +182,7 @@
       },
       "id": "12b53d55-b310-48bd-ab58-d1f5acd6c460",
       "name": "Start Typing",
+      "onError": "continueRegularOutput",
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202409,
       "position": [
